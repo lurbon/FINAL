@@ -1,0 +1,10 @@
+# Version minimaliste du .htaccess - à utiliser si la version normale cause des erreurs
+
+# Désactiver le listing des répertoires
+Options -Indexes
+
+# Bloquer l'accès aux fichiers sensibles
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sql)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

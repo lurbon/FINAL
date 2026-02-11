@@ -1,0 +1,227 @@
+<?php
+/**
+ * PAGE DE CONNEXION - Espace Membre
+ */
+
+session_start();
+require_once '../includes/config.php';
+
+// Si déjà connecté, rediriger vers le dashboard
+if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
+    header('Location: dashboard.php');
+    exit;
+}
+
+$message = '';
+$message_type = '';
+
+// Traitement de la connexion
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    
+    if (empty($email) || empty($password)) {
+        $message = "Veuillez remplir tous les champs";
+        $message_type = 'error';
+    } else {
+        // Récupérer l'utilisateur
+        $stmt = $pdo->prepare("SELECT ID, user_nicename, user_email, user_pass, user_role 
+                               FROM EPI_user 
+                               WHERE user_email = ? 
+                               LIMIT 1");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+        
+        if ($user && password_verify($password, $user['user_pass'])) {
+            // Connexion réussie
+            $_SESSION['user_id'] = $user['ID'];
+            $_SESSION['user_name'] = $user['user_nicename'];
+            $_SESSION['user_email'] = $user['user_email'];
+            $_SESSION['user_role'] = $user['user_role'];
+            $_SESSION['logged_in'] = true;
+            
+            header('Location: dashboard.php');
+            exit;
+        } else {
+            $message = "Email ou mot de passe incorrect";
+            $message_type = 'error';
+        }
+    }
+}
+
+// Message après réinitialisation réussie
+if (isset($_GET['message']) && $_GET['message'] === 'password_changed') {
+    $message = "Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter.";
+    $message_type = 'success';
+}
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Espace Membre</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .login-container {
+            max-width: 450px;
+            width: 100%;
+        }
+        .login-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-header h1 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+        .login-header p {
+            margin: 0;
+            color: var(--text-secondary);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .forgot-password a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+        .back-home {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        .back-home a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+        .back-home a:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>🔐 Espace Membre</h1>
+                <p>Connectez-vous à votre compte</p>
+            </div>
+            
+            <?php if ($message): ?>
+                <div class="alert <?php echo $message_type; ?>">
+                    <?php echo htmlspecialchars($message); ?>
+                </div>
+            <?php endif; ?>
+            
+            <form method="POST" autocomplete="on">
+                <div class="form-group">
+                    <label class="form-label">Adresse email</label>
+                    <input type="email" 
+                           name="email" 
+                           class="form-control" 
+                           placeholder="votre@email.fr"
+                           required 
+                           autocomplete="email"
+                           value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Mot de passe</label>
+                    <input type="password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="Votre mot de passe"
+                           required 
+                           autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    ✓ Se connecter
+                </button>
+            </form>
+            
+            <div class="forgot-password">
+                <a href="forgot-password.php">Mot de passe oublié ?</a>
+            </div>
+            
+            <div class="back-home">
+                <a href="../index.php">← Retour au site</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
