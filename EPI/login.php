@@ -25,8 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Toujours retourner du JSON pour les requêtes POST
     header('Content-Type: application/json');
 
-    // Capturer les erreurs PHP fatales pour renvoyer du JSON au lieu d'une page vide
+    // Capturer les erreurs PHP pour renvoyer du JSON au lieu d'une page vide
+    // On ignore les warnings de session_start() (config.php peut aussi l'appeler)
     set_error_handler(function($severity, $message, $file, $line) {
+        if (strpos($message, 'session_start()') !== false) {
+            return true;
+        }
         throw new ErrorException($message, 0, $severity, $file, $line);
     });
 
