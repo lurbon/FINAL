@@ -1,24 +1,22 @@
 <?php
 require_once('config.php');
-
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
+require_once(__DIR__ . '/../includes/csrf.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 
 $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
-    $email = $_POST['email'] ?? '';
+    csrf_protect();
+    $username = sanitize_text($_POST['username'] ?? '', 100);
+    $email = sanitize_text($_POST['email'] ?? '', 254);
 
     if (empty($username) || empty($email)) {
         $error = "Tous les champs sont obligatoires";
     } else {
         try {
-            $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $conn = getDBConnection();
 
             // Vérifier si l'utilisateur existe avec cet email
             $stmt = $conn->prepare("SELECT ID, user_login, user_email, display_name FROM EPI_user WHERE user_login = :username AND user_email = :email");
@@ -45,7 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
         } catch(PDOException $e) {
-            $error = "Erreur : " . $e->getMessage();
+            error_log("Erreur reset_password: " . $e->getMessage());
+            $error = "Une erreur est survenue. Veuillez réessayer.";
         }
     }
 }
@@ -250,6 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <form method="POST" action="">
+                <?php echo csrf_field(); ?>
                 <div class="form-group">
                     <label for="username">Nom d'utilisateur</label>
                     <input 

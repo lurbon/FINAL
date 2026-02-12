@@ -2,22 +2,12 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
-verifierRole(['admin', 'gestionnaire','chauffeur','benevole']);
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
+verifierRole(['admin', 'gestionnaire', 'chauffeur', 'benevole']);
 
-// Connexion à la base de données
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
-
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    error_log("Erreur de connexion BDD statistiques_secteurs: " . $e->getMessage());
-    die("Une erreur est survenue. Veuillez contacter l'administrateur.");
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Paramètres de filtre
 $annee = isset($_GET['annee']) ? intval($_GET['annee']) : date('Y');
