@@ -7,6 +7,8 @@
 
 require_once '../includes/config.php';
 require_once 'check_auth.php';
+require_once '../includes/csrf.php';
+require_once '../includes/sanitize.php';
 
 $message = '';
 $message_type = '';
@@ -15,23 +17,25 @@ $message_type = '';
 
 // Ajouter une année
 if (isset($_POST['add_year'])) {
+    csrf_protect();
     $year = (int)$_POST['year'];
-    $description = trim($_POST['year_description'] ?? '');
-    
+    $description = sanitize_text($_POST['year_description'] ?? '', 500);
+
     $stmt = $pdo->prepare("INSERT INTO EPI_year (year, description) VALUES (?, ?)");
     try {
         $stmt->execute([$year, $description]);
         $message = "Année $year ajoutée avec succès";
         $message_type = 'success';
     } catch (PDOException $e) {
-        $message = "Erreur : Cette année existe déjà";
+        $message = "Cette année existe déjà";
         $message_type = 'error';
     }
 }
 
-// Supprimer une année
-if (isset($_GET['delete_year'])) {
-    $year_id = (int)$_GET['delete_year'];
+// Supprimer une année (POST uniquement)
+if (isset($_POST['delete_year'])) {
+    csrf_protect();
+    $year_id = (int)$_POST['delete_year'];
     $stmt = $pdo->prepare("DELETE FROM EPI_year WHERE id = ?");
     $stmt->execute([$year_id]);
     $message = "Année supprimée avec succès (ainsi que ses événements et photos)";
@@ -42,61 +46,61 @@ if (isset($_GET['delete_year'])) {
 
 // Ajouter un événement
 if (isset($_POST['add_event'])) {
+    csrf_protect();
     $year_id = (int)$_POST['year_id'];
-    $name = trim($_POST['event_name']);
-    $description = trim($_POST['event_description'] ?? '');
-    $event_date = $_POST['event_date'] ?: null;
-    
-    // Gérer l'image de couverture
+    $name = sanitize_text($_POST['event_name'] ?? '', 255);
+    $description = sanitize_text($_POST['event_description'] ?? '', 2000);
+    $event_date = sanitize_date($_POST['event_date'] ?? '') ?: null;
+
+    // Gérer l'image de couverture avec validation MIME
     $cover_image = null;
     if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === 0) {
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        $ext = strtolower(pathinfo($_FILES['cover_image']['name'], PATHINFO_EXTENSION));
-        
-        if (in_array($ext, $allowed)) {
+        $upload = validate_upload($_FILES['cover_image']);
+        if ($upload['valid']) {
             if (!file_exists('../uploads/gallery')) {
                 mkdir('../uploads/gallery', 0755, true);
             }
-            $cover_image = 'cover_' . uniqid() . '.' . $ext;
+            $cover_image = safe_filename('cover', $upload['ext']);
             move_uploaded_file($_FILES['cover_image']['tmp_name'], '../uploads/gallery/' . $cover_image);
+        } else {
+            $message = $upload['error'];
+            $message_type = 'error';
         }
     }
-    
-    $stmt = $pdo->prepare("INSERT INTO EPI_gallery_event (year_id, name, description, event_date, cover_image) VALUES (?, ?, ?, ?, ?)");
-    $stmt->execute([$year_id, $name, $description, $event_date, $cover_image]);
-    $message = "Événement ajouté avec succès";
-    $message_type = 'success';
+
+    if ($message_type !== 'error') {
+        $stmt = $pdo->prepare("INSERT INTO EPI_gallery_event (year_id, name, description, event_date, cover_image) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$year_id, $name, $description, $event_date, $cover_image]);
+        $message = "Événement ajouté avec succès";
+        $message_type = 'success';
+    }
 }
 
 // Modifier un événement
 if (isset($_POST['edit_event'])) {
+    csrf_protect();
     $event_id = (int)$_POST['event_id'];
-    $name = trim($_POST['event_name']);
-    $description = trim($_POST['event_description'] ?? '');
-    $event_date = $_POST['event_date'] ?: null;
-    
+    $name = sanitize_text($_POST['event_name'] ?? '', 255);
+    $description = sanitize_text($_POST['event_description'] ?? '', 2000);
+    $event_date = sanitize_date($_POST['event_date'] ?? '') ?: null;
+
     // Récupérer l'image actuelle
     $stmt = $pdo->prepare("SELECT cover_image FROM EPI_gallery_event WHERE id = ?");
     $stmt->execute([$event_id]);
     $current_event = $stmt->fetch();
     $cover_image = $current_event['cover_image'];
-    
-    // Gérer la nouvelle image de couverture
+
+    // Gérer la nouvelle image de couverture avec validation MIME
     if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === 0) {
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        $ext = strtolower(pathinfo($_FILES['cover_image']['name'], PATHINFO_EXTENSION));
-        
-        if (in_array($ext, $allowed)) {
+        $upload = validate_upload($_FILES['cover_image']);
+        if ($upload['valid']) {
             if (!file_exists('../uploads/gallery')) {
                 mkdir('../uploads/gallery', 0755, true);
             }
-            
-            // Supprimer l'ancienne image
             if ($cover_image) {
                 @unlink('../uploads/gallery/' . $cover_image);
             }
-            
-            $cover_image = 'cover_' . uniqid() . '.' . $ext;
+            $cover_image = safe_filename('cover', $upload['ext']);
             move_uploaded_file($_FILES['cover_image']['tmp_name'], '../uploads/gallery/' . $cover_image);
         }
     }
@@ -115,9 +119,10 @@ if (isset($_POST['edit_event'])) {
     $message_type = 'success';
 }
 
-// Supprimer un événement
-if (isset($_GET['delete_event'])) {
-    $event_id = (int)$_GET['delete_event'];
+// Supprimer un événement (POST uniquement)
+if (isset($_POST['delete_event'])) {
+    csrf_protect();
+    $event_id = (int)$_POST['delete_event'];
     
     // Supprimer l'image de couverture
     $stmt = $pdo->prepare("SELECT cover_image FROM EPI_gallery_event WHERE id = ?");
@@ -210,49 +215,49 @@ function compressImage($source, $destination, $quality = 80) {
 
 // Ajouter des photos à un événement
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['event_images'])) {
+    csrf_protect();
     $event_id = (int)$_POST['event_id'];
-    $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     $uploaded = 0;
     $errors = 0;
     $error_details = [];
-    
+
     if (!file_exists('../uploads/gallery')) {
         mkdir('../uploads/gallery', 0755, true);
     }
-    
+
     $files = $_FILES['event_images'];
     $file_count = count($files['name']);
-    
+
     // Limiter le nombre de fichiers par upload
     $max_files_per_upload = 50;
     if ($file_count > $max_files_per_upload) {
-        $message = "⚠️ Maximum $max_files_per_upload fichiers par upload. Veuillez diviser votre upload.";
+        $message = "Maximum $max_files_per_upload fichiers par upload. Veuillez diviser votre upload.";
         $message_type = 'error';
     } else {
         for ($i = 0; $i < $file_count; $i++) {
             if ($files['error'][$i] !== 0) {
-                $error_details[] = $files['name'][$i] . " (erreur upload #" . $files['error'][$i] . ")";
+                $error_details[] = e($files['name'][$i]) . " (erreur upload)";
                 $errors++;
                 continue;
             }
-            
+
+            // Validation MIME avec notre fonction centralisée
+            $singleFile = [
+                'name'     => $files['name'][$i],
+                'type'     => $files['type'][$i],
+                'tmp_name' => $files['tmp_name'][$i],
+                'error'    => $files['error'][$i],
+                'size'     => $files['size'][$i],
+            ];
+            $upload = validate_upload($singleFile);
+            if (!$upload['valid']) {
+                $error_details[] = e($files['name'][$i]) . " (" . $upload['error'] . ")";
+                $errors++;
+                continue;
+            }
+
             $filename = $files['name'][$i];
-            $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-            
-            if (!in_array($ext, $allowed)) {
-                $error_details[] = $filename . " (format non autorisé)";
-                $errors++;
-                continue;
-            }
-            
-            // Vérifier la taille du fichier (max 10MB)
-            if ($files['size'][$i] > 10 * 1024 * 1024) {
-                $error_details[] = $filename . " (trop volumineux, max 10MB)";
-                $errors++;
-                continue;
-            }
-            
-            $new_filename = uniqid() . '.' . $ext;
+            $new_filename = safe_filename('gallery', $upload['ext']);
             $title = pathinfo($filename, PATHINFO_FILENAME);
             $temp_path = $files['tmp_name'][$i];
             $final_path = '../uploads/gallery/' . $new_filename;

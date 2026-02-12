@@ -1,15 +1,19 @@
 <?php
 require_once '../includes/config.php';
 require_once 'check_auth.php';
+require_once '../includes/csrf.php';
+require_once '../includes/sanitize.php';
 
-if (isset($_GET['delete'])) {
-    $pdo->prepare("DELETE FROM EPI_contact_messages WHERE id = ?")->execute([$_GET['delete']]);
+if (isset($_POST['delete_message'])) {
+    csrf_protect();
+    $pdo->prepare("DELETE FROM EPI_contact_messages WHERE id = ?")->execute([(int)$_POST['delete_message']]);
     header('Location: messages.php');
     exit;
 }
 
-if (isset($_GET['read'])) {
-    $pdo->prepare("UPDATE EPI_contact_messages SET read_status = 1 WHERE id = ?")->execute([$_GET['read']]);
+if (isset($_POST['mark_read'])) {
+    csrf_protect();
+    $pdo->prepare("UPDATE EPI_contact_messages SET read_status = 1 WHERE id = ?")->execute([(int)$_POST['mark_read']]);
 }
 
 $messages = $pdo->query("SELECT * FROM EPI_contact_messages ORDER BY created_at DESC")->fetchAll();

@@ -2,33 +2,25 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
+require_once(__DIR__ . '/../includes/csrf.php');
 verifierRole(['admin', 'gestionnaire']);
 
-// Connexion à la base de données
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 $message = "";
 $messageType = "";
 $benevole = null;
 $benevoles = [];
 
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
-
 // Récupérer la liste des bénévoles pour le filtre
 try {
     $stmt = $conn->query("SELECT id_benevole, nom FROM EPI_benevole ORDER BY nom");
     $benevoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
-    $error = "Erreur : " . $e->getMessage();
+    error_log("Erreur modifier_benevole.php (liste benevoles): " . $e->getMessage());
 }
 
 // Villes depuis la table EPI_ville
@@ -68,6 +60,7 @@ if (empty($moyensPaiement)) {
 
 // Traitement du formulaire de modification
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id_benevole'])) {
+    csrf_protect();
     try {
         // Formatage du nom : NOM en majuscules, prénom(s) en minuscules avec initiale en majuscule
         $nomComplet = $_POST['nom'];
@@ -120,8 +113,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id_benevole'])) {
         exit();
         
     } catch(PDOException $e) {
-        $errorMsg = urlencode($e->getMessage());
-        header("Location: " . $_SERVER['PHP_SELF'] . "?error=" . $errorMsg . "&id=" . $_POST['id_benevole']);
+        error_log("Erreur modifier_benevole.php: " . $e->getMessage());
+        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1&id=" . $_POST['id_benevole']);
         exit();
     }
 }
@@ -138,7 +131,8 @@ if (isset($_GET['id'])) {
             $messageType = "error";
         }
     } catch(PDOException $e) {
-        $message = "❌ Erreur : " . $e->getMessage();
+        error_log("Erreur modifier_benevole.php (chargement): " . $e->getMessage());
+        $message = "Une erreur est survenue lors du chargement.";
         $messageType = "error";
     }
 }
@@ -148,7 +142,7 @@ if (isset($_GET['success'])) {
     $message = "✅ Bénévole modifié avec succès !";
     $messageType = "success";
 } elseif (isset($_GET['error'])) {
-    $message = "❌ Erreur : " . urldecode($_GET['error']);
+    $message = "Une erreur est survenue lors de la modification.";
     $messageType = "error";
 }
 ?>
@@ -494,6 +488,7 @@ if (isset($_GET['success'])) {
 
         <?php if($benevole): ?>
         <form method="POST" action="">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="id_benevole" value="<?php echo $benevole['id_benevole']; ?>">
 
             <div class="form-group">

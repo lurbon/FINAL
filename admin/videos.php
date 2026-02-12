@@ -1,13 +1,16 @@
 <?php
 require_once '../includes/config.php';
 require_once 'check_auth.php';
+require_once '../includes/csrf.php';
+require_once '../includes/sanitize.php';
 
 $message = '';
 $message_type = '';
 
 // Supprimer une video
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (isset($_POST['delete_video'])) {
+    csrf_protect();
+    $id = (int)$_POST['delete_video'];
     $stmt = $pdo->prepare("SELECT video_url FROM EPI_videos WHERE id = ?");
     $stmt->execute([$id]);
     $vid = $stmt->fetch();
@@ -23,7 +26,8 @@ if (isset($_GET['delete'])) {
 }
 
 // Ajouter ou modifier une video
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['delete_video']) && !isset($_POST['admin_logout'])) {
+    csrf_protect();
     $id = $_POST['id'] ?? null;
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -93,7 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $message_type = 'success';
         } catch (PDOException $e) {
-            $message = "Erreur : " . $e->getMessage();
+            error_log("Videos admin error: " . $e->getMessage());
+            $message = "Une erreur est survenue lors de l'enregistrement.";
             $message_type = 'error';
         }
     }
@@ -213,7 +218,10 @@ $videos = $pdo->query("SELECT * FROM EPI_videos ORDER BY created_at DESC")->fetc
                 <a href="videos.php" class="active">🎥 Vidéos</a>
                 <a href="messages.php">✉️ Messages</a>
                 <a href="../index.php" target="_blank">🌐 Voir le site</a>
-                <a href="?logout=1" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">🚪 Déconnexion</a>
+                <form method="POST" action="" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0;">
+                    <input type="hidden" name="admin_logout" value="1">
+                    <button type="submit" style="display: block; width: 100%; padding: 1rem 1.5rem; color: rgba(255,255,255,0.8); text-decoration: none; background: none; border: none; cursor: pointer; text-align: left; font-size: inherit; font-family: inherit;">Deconnexion</button>
+                </form>
             </nav>
         </div>
 
@@ -232,6 +240,7 @@ $videos = $pdo->query("SELECT * FROM EPI_videos ORDER BY created_at DESC")->fetc
                 <h2 style="margin-bottom: 1rem;"><?php echo $edit_video ? 'Modifier la video' : 'Ajouter une video'; ?></h2>
 
                 <form method="POST" enctype="multipart/form-data">
+                    <?php echo csrf_field(); ?>
                     <?php if ($edit_video): ?>
                         <input type="hidden" name="id" value="<?php echo $edit_video['id']; ?>">
                         <input type="hidden" name="current_video_url" value="<?php echo htmlspecialchars($edit_video['video_url'] ?? ''); ?>">
@@ -360,9 +369,11 @@ $videos = $pdo->query("SELECT * FROM EPI_videos ORDER BY created_at DESC")->fetc
                             </div>
                             <div class="video-item-actions">
                                 <a href="?edit=<?php echo $v['id']; ?>" class="btn-sm btn-edit">Modifier</a>
-                                <a href="?delete=<?php echo $v['id']; ?>"
-                                   onclick="return confirm('Supprimer cette video ?')"
-                                   class="btn-sm btn-del">Supprimer</a>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Supprimer cette video ?')">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="delete_video" value="<?php echo (int)$v['id']; ?>">
+                                    <button type="submit" class="btn-sm btn-del">Supprimer</button>
+                                </form>
                             </div>
                         </div>
                     <?php endforeach; ?>

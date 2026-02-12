@@ -2,20 +2,13 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
+require_once(__DIR__ . '/../includes/csrf.php');
 verifierRole(['admin','gestionnaire']);
 
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
-
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Fonction pour générer un token sécurisé
 function generateSecureToken($missionId, $benevoleEmail) {
@@ -175,6 +168,7 @@ $emailSent = false;
 $emailError = false;
 $emailCount = 0;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
+    csrf_protect();
     $secteur = $_POST['secteur'];
     $subject = $_POST['subject'];
     $selectedBenevoles = isset($_POST['benevoles']) ? $_POST['benevoles'] : [];
@@ -423,7 +417,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             
             $emailSent = true;
         } catch(Exception $e) {
-            $emailError = "Erreur lors de l'envoi : " . $e->getMessage();
+            error_log("Erreur envoi email missions : " . $e->getMessage());
+            $emailError = "Une erreur est survenue lors de l'envoi des emails.";
         }
     } else {
         if (count($selectedBenevoles) === 0) {
@@ -472,7 +467,8 @@ if (isset($_GET['get_benevoles'])) {
         $benevoles = $stmtBenevoles->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($benevoles);
     } catch(PDOException $e) {
-        echo json_encode(['error' => $e->getMessage()]);
+        error_log("Erreur récupération bénévoles AJAX : " . $e->getMessage());
+        echo json_encode(['error' => 'Une erreur est survenue lors de la récupération des bénévoles.']);
     }
     exit;
 }
@@ -509,7 +505,8 @@ if (isset($_GET['get_missions'])) {
             echo json_encode(['error' => 'Paramètre secteur manquant']);
         }
     } catch(PDOException $e) {
-        echo json_encode(['error' => $e->getMessage()]);
+        error_log("Erreur récupération missions AJAX : " . $e->getMessage());
+        echo json_encode(['error' => 'Une erreur est survenue lors de la récupération des missions.']);
     }
     exit;
 }
@@ -552,7 +549,8 @@ try {
     ksort($missionsBySecteur);
     
 } catch(PDOException $e) {
-    die("Erreur lors de la récupération des missions : " . $e->getMessage());
+    error_log("Erreur récupération missions sans bénévoles : " . $e->getMessage());
+    die("Une erreur est survenue lors de la récupération des missions.");
 }
 
 // Calculer le total de missions
@@ -1549,6 +1547,7 @@ $totalMissions = array_sum(array_map('count', $missionsBySecteur));
             <?php endif; ?>
             
             <form method="POST" action="" id="emailForm">
+                <?php echo csrf_field(); ?>
                 <input type="hidden" name="send_email" value="1">
                 <input type="hidden" name="secteur" id="modal-secteur" value="">
                 

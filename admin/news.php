@@ -1,21 +1,24 @@
 <?php
 require_once '../includes/config.php';
 require_once 'check_auth.php';
+require_once '../includes/csrf.php';
+require_once '../includes/sanitize.php';
 
 $message = '';
 $message_type = '';
 
-// Supprimer une actualité
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+// Supprimer une actualité (POST uniquement pour sécurité)
+if (isset($_POST['delete_news'])) {
+    csrf_protect();
+    $id = (int)$_POST['delete_news'];
     $stmt = $pdo->prepare("SELECT image FROM EPI_news WHERE id = ?");
     $stmt->execute([$id]);
     $news = $stmt->fetch();
-    
+
     if ($news && $news['image']) {
         @unlink('../uploads/news/' . $news['image']);
     }
-    
+
     $stmt = $pdo->prepare("DELETE FROM EPI_news WHERE id = ?");
     $stmt->execute([$id]);
     $message = "Actualité supprimée avec succès";
@@ -23,23 +26,25 @@ if (isset($_GET['delete'])) {
 }
 
 // Ajouter ou modifier une actualité
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['delete_news'])) {
+    csrf_protect();
     $id = $_POST['id'] ?? null;
-    $title = $_POST['title'] ?? '';
+    $title = sanitize_text($_POST['title'] ?? '', 255);
     $content = $_POST['content'] ?? '';
     $published = isset($_POST['published']) ? 1 : 0;
     $current_image = $_POST['current_image'] ?? '';
-    
+
     $image = $current_image;
-    
-    // Upload de l'image
+
+    // Upload de l'image avec validation MIME
     if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        $filename = $_FILES['image']['name'];
-        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        
-        if (in_array($ext, $allowed)) {
-            $new_filename = uniqid() . '.' . $ext;
+        $upload = validate_upload($_FILES['image']);
+
+        if ($upload['valid']) {
+            if (!file_exists('../uploads/news')) {
+                mkdir('../uploads/news', 0755, true);
+            }
+            $new_filename = safe_filename('news', $upload['ext']);
             if (move_uploaded_file($_FILES['image']['tmp_name'], '../uploads/news/' . $new_filename)) {
                 // Supprimer l'ancienne image
                 if ($current_image && file_exists('../uploads/news/' . $current_image)) {
@@ -47,25 +52,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $image = $new_filename;
             }
+        } else {
+            $message = $upload['error'];
+            $message_type = 'error';
         }
     }
-    
-    try {
-        if ($id) {
-            // Mise à jour
-            $stmt = $pdo->prepare("UPDATE EPI_news SET title = ?, content = ?, image = ?, published = ? WHERE id = ?");
-            $stmt->execute([$title, $content, $image, $published, $id]);
-            $message = "Actualité modifiée avec succès";
-        } else {
-            // Création
-            $stmt = $pdo->prepare("INSERT INTO EPI_news (title, content, image, published) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$title, $content, $image, $published]);
-            $message = "Actualité créée avec succès";
+
+    if ($message_type !== 'error') {
+        try {
+            if ($id) {
+                $stmt = $pdo->prepare("UPDATE EPI_news SET title = ?, content = ?, image = ?, published = ? WHERE id = ?");
+                $stmt->execute([$title, $content, $image, $published, $id]);
+                $message = "Actualité modifiée avec succès";
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO EPI_news (title, content, image, published) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$title, $content, $image, $published]);
+                $message = "Actualité créée avec succès";
+            }
+            $message_type = 'success';
+        } catch (PDOException $e) {
+            error_log("Erreur news: " . $e->getMessage());
+            $message = "Erreur lors de l'enregistrement. Veuillez réessayer.";
+            $message_type = 'error';
         }
-        $message_type = 'success';
-    } catch (PDOException $e) {
-        $message = "Erreur : " . $e->getMessage();
-        $message_type = 'error';
     }
 }
 
@@ -192,9 +201,12 @@ $page_title = "Gestion des actualités";
                 <a href="videos.php">🎥 Vidéos</a>
                 <a href="messages.php">✉️ Messages</a>
                 <a href="../index.php" target="_blank">🌐 Voir le site</a>
-                <a href="?logout=1" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
-                    🚪 Déconnexion
-                </a>
+                <form method="POST" action="" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0;">
+                    <input type="hidden" name="admin_logout" value="1">
+                    <button type="submit" style="display: block; width: 100%; padding: 1rem 1.5rem; color: rgba(255,255,255,0.8); text-decoration: none; background: none; border: none; cursor: pointer; text-align: left; font-size: inherit; font-family: inherit;">
+                        Deconnexion
+                    </button>
+                </form>
             </nav>
         </div>
         
@@ -214,8 +226,9 @@ $page_title = "Gestion des actualités";
             <div style="background: white; padding: 2rem; border-radius: var(--radius-lg); margin-bottom: 2rem; box-shadow: var(--shadow-md);">
                 <h2><?php echo $edit_news ? 'Modifier l\'actualité' : 'Nouvelle actualité'; ?></h2>
                 <form method="POST" enctype="multipart/form-data">
+                    <?php echo csrf_field(); ?>
                     <?php if ($edit_news): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_news['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo (int)$edit_news['id']; ?>">
                         <input type="hidden" name="current_image" value="<?php echo htmlspecialchars($edit_news['image']); ?>">
                     <?php endif; ?>
                     
@@ -298,11 +311,13 @@ $page_title = "Gestion des actualités";
                                     <a href="?edit=<?php echo $item['id']; ?>" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                                         Modifier
                                     </a>
-                                    <a href="?delete=<?php echo $item['id']; ?>" 
-                                       onclick="return confirm('Supprimer cette actualité ?')"
-                                       class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: var(--error);">
-                                        Supprimer
-                                    </a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Supprimer cette actualité ?')">
+                                        <?php echo csrf_field(); ?>
+                                        <input type="hidden" name="delete_news" value="<?php echo (int)$item['id']; ?>">
+                                        <button type="submit" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: var(--error);">
+                                            Supprimer
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

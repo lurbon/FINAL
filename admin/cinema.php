@@ -1,6 +1,8 @@
 <?php
 require_once '../includes/config.php';
 require_once 'check_auth.php';
+require_once '../includes/csrf.php';
+require_once '../includes/sanitize.php';
 
 $message = '';
 $message_type = '';
@@ -22,8 +24,9 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS EPI_cinema (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
 // Supprimer un film
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (isset($_POST['delete_film'])) {
+    csrf_protect();
+    $id = (int)$_POST['delete_film'];
     $stmt = $pdo->prepare("SELECT image FROM EPI_cinema WHERE id = ?");
     $stmt->execute([$id]);
     $film = $stmt->fetch();
@@ -39,7 +42,8 @@ if (isset($_GET['delete'])) {
 }
 
 // Ajouter ou modifier un film
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['delete_film']) && !isset($_POST['admin_logout'])) {
+    csrf_protect();
     $id = $_POST['id'] ?? null;
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -88,7 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $message_type = 'success';
     } catch (PDOException $e) {
-        $message = "Erreur : " . $e->getMessage();
+        error_log("Cinema admin error: " . $e->getMessage());
+        $message = "Une erreur est survenue lors de l'enregistrement.";
         $message_type = 'error';
     }
 }
@@ -245,7 +250,10 @@ foreach ($all_films as $f) {
                 <a href="videos.php">🎥 Vidéos</a>
                 <a href="messages.php">✉️ Messages</a>
                 <a href="../index.php" target="_blank">🌐 Voir le site</a>
-                <a href="?logout=1" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">🚪 Déconnexion</a>
+                <form method="POST" action="" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0;">
+                    <input type="hidden" name="admin_logout" value="1">
+                    <button type="submit" style="display: block; width: 100%; padding: 1rem 1.5rem; color: rgba(255,255,255,0.8); text-decoration: none; background: none; border: none; cursor: pointer; text-align: left; font-size: inherit; font-family: inherit;">Deconnexion</button>
+                </form>
             </nav>
         </div>
 
@@ -280,6 +288,7 @@ foreach ($all_films as $f) {
             <div style="background: white; padding: 2rem; border-radius: var(--radius-lg); margin-bottom: 2rem; box-shadow: var(--shadow-md);">
                 <h2 style="margin-bottom: 1.5rem;"><?php echo $edit_film ? 'Modifier le film' : 'Ajouter un film'; ?></h2>
                 <form method="POST" enctype="multipart/form-data">
+                    <?php echo csrf_field(); ?>
                     <?php if ($edit_film): ?>
                         <input type="hidden" name="id" value="<?php echo $edit_film['id']; ?>">
                         <input type="hidden" name="current_image" value="<?php echo htmlspecialchars($edit_film['image'] ?? ''); ?>">
@@ -435,9 +444,11 @@ foreach ($all_films as $f) {
 
                                 <div class="film-actions">
                                     <a href="?edit=<?php echo $film['id']; ?>" class="btn-sm btn-edit">Modifier</a>
-                                    <a href="?delete=<?php echo $film['id']; ?>"
-                                       onclick="return confirm('Supprimer ce film ?')"
-                                       class="btn-sm btn-del">Supprimer</a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Supprimer ce film ?')">
+                                        <?php echo csrf_field(); ?>
+                                        <input type="hidden" name="delete_film" value="<?php echo (int)$film['id']; ?>">
+                                        <button type="submit" class="btn-sm btn-del">Supprimer</button>
+                                    </form>
                                 </div>
                             </div>
                         <?php endforeach; ?>

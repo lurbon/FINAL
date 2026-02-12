@@ -22,6 +22,8 @@
  */
 
 require_once('config.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 
 // ============================================================
 // CLE API : definie dans config.php (constante API_EXCEL_KEY)
@@ -70,24 +72,7 @@ function verifierAuthentificationAPI() {
 verifierAuthentificationAPI();
 
 // Connexion a la base de donnees
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
-
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    error_log("api_excel_tables: Erreur connexion BDD: " . $e->getMessage());
-    http_response_code(500);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode([
-        'success' => false,
-        'error' => 'Erreur de connexion a la base de donnees'
-    ]);
-    exit();
-}
+$conn = getDBConnection();
 
 /**
  * Recupere les benevoles

@@ -2,24 +2,16 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/csrf.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 verifierRole(['admin', 'gestionnaire']);
-
-// Connexion à la base de données
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
 
 $message = "";
 $messageType = "";
 
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Récupérer les données pour les listes déroulantes
 $secteurs = [];
@@ -65,6 +57,7 @@ if (empty($moyensPaiement)) {
 
 // Traitement du formulaire
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    csrf_protect();
     try {
         // Formatage du nom : NOM en majuscules, prénom(s) en minuscules avec initiale en majuscule
         $nomComplet = $_POST['nom'];
@@ -119,8 +112,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
         
     } catch(PDOException $e) {
-        $errorMsg = urlencode($e->getMessage());
-        header("Location: " . $_SERVER['PHP_SELF'] . "?error=" . $errorMsg);
+        error_log("Erreur insertion bénévole: " . $e->getMessage());
+        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
         exit();
     }
 }
@@ -130,7 +123,7 @@ if (isset($_GET['success'])) {
     $message = "✅ Bénévole ajouté avec succès !";
     $messageType = "success";
 } elseif (isset($_GET['error'])) {
-    $message = "❌ Erreur : " . urldecode($_GET['error']);
+    $message = "Erreur lors de l'enregistrement. Veuillez réessayer.";
     $messageType = "error";
 }
 
@@ -491,11 +484,12 @@ $dateJour = date('Y-m-d');
         
         <?php if($message): ?>
             <div class="message <?php echo $messageType; ?>">
-                <?php echo $message; ?>
+                <?php echo e($message); ?>
             </div>
         <?php endif; ?>
         
         <form method="POST" action="">
+            <?php echo csrf_field(); ?>
             <div class="form-group">
                 <label for="nom">NOM et Prénom du bénévole *</label>
                 <input type="text" id="nom" name="nom" required placeholder="">

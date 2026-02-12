@@ -9,20 +9,12 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 verifierRole(['admin','gestionnaire']);
 
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
-
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // ⭐ TRAITEMENT AJAX - Doit être AU DÉBUT avant toute sortie HTML
 if (isset($_GET['ajax_details'])) {
@@ -67,8 +59,9 @@ if (isset($_GET['ajax_details'])) {
             echo json_encode(['error' => 'Envoi non trouvé']);
         }
     } catch(PDOException $e) {
+        error_log("Erreur détails envoi AJAX : " . $e->getMessage());
         header('Content-Type: application/json');
-        echo json_encode(['error' => $e->getMessage()]);
+        echo json_encode(['error' => 'Une erreur est survenue lors de la récupération des détails.']);
     }
     exit; // IMPORTANT: Arrêter l'exécution ici pour AJAX
 }

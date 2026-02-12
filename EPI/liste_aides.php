@@ -2,21 +2,12 @@
 // Charger la configuration
 		require_once('config.php');
      require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 verifierRole(['admin', 'chauffeur','gestionnaire']);
-// Connexion à la base de données
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
 
-
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Récupérer toutes les aides
 $aides = [];
@@ -43,7 +34,8 @@ try {
     $stmt->execute($params);
     $aides = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
-    $error = "Erreur lors de la récupération des aidés : " . $e->getMessage();
+    error_log("Erreur récupération aidés : " . $e->getMessage());
+    $error = "Une erreur est survenue lors de la récupération des aidés.";
 }
 
 // Récupérer les secteurs pour le filtre

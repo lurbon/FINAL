@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
-    $username = $data['username'];
+    $username = trim($data['username']);
     $password = $data['password'];
 
     // Connexion à la base de données

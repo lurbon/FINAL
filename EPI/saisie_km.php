@@ -2,24 +2,16 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
+require_once(__DIR__ . '/../includes/csrf.php');
 verifierRole(['admin','gestionnaire','chauffeur','benevole']);
 
-// Connexion à la base de données
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 $message = "";
 $messageType = "";
-
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
 
 // Déterminer si l'utilisateur doit voir uniquement ses missions (chauffeurs et bénévoles)
 // Seuls admin et gestionnaire voient toutes les missions
@@ -63,6 +55,7 @@ function dateEnFrancais($date) {
 
 // Traitement de la mise à jour
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id_mission'])) {
+    csrf_protect();
     try {
         // Sécurité : chauffeurs et bénévoles ne peuvent modifier que leurs propres missions
         if ($isBenevole) {
@@ -115,7 +108,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id_mission'])) {
 
         skipUpdate:
     } catch(PDOException $e) {
-        $message = "Erreur : " . $e->getMessage();
+        error_log("Erreur saisie_km.php: " . $e->getMessage());
+        $message = "Une erreur est survenue lors de la mise a jour.";
         $messageType = "error";
     }
 }
@@ -167,7 +161,7 @@ try {
     // error_log("Missions trouvées pour bénévole : " . count($missions) . " | isBenevole: " . ($isBenevole ? 'OUI' : 'NON') . " | IDs: " . implode(',', $idsBenevoleConnecte));
     
 } catch(PDOException $e) {
-    $error = "Erreur : " . $e->getMessage();
+    error_log("Erreur saisie_km.php (liste missions): " . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
@@ -712,6 +706,7 @@ try {
                         </div>
 
                         <form method="POST" action="">
+                            <?php echo csrf_field(); ?>
                             <input type="hidden" name="id_mission" value="<?php echo $mission['id_mission']; ?>">
                             
                             <div class="form-section">

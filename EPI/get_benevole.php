@@ -1,6 +1,8 @@
 <?php
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 verifierRole(['admin', 'gestionnaire']);
 
 header('Content-Type: application/json');
@@ -18,15 +20,9 @@ function cleanData($value) {
     return stripslashes($value);
 }
 
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
+$conn = getDBConnection();
 
 try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
     if (isset($_GET['id'])) {
         $stmt = $conn->prepare("SELECT nom, adresse, code_postal, commune, secteur FROM EPI_benevole WHERE id_benevole = :id");
         $stmt->execute([':id' => $_GET['id']]);
@@ -48,6 +44,7 @@ try {
         echo json_encode(['success' => false, 'error' => 'ID manquant']);
     }
 } catch(PDOException $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    error_log("get_benevole: Erreur requête: " . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'Erreur interne du serveur']);
 }
 ?>

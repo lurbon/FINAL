@@ -1,19 +1,12 @@
 <?php
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 verifierRole(['admin', 'benevole', 'chauffeur', 'gestionnaire']);
 
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
-
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Trouver les id_benevole correspondant à l'email de l'utilisateur connecté
 // (un couple peut partager le même email → plusieurs id_benevole)
@@ -76,7 +69,8 @@ try {
         $missions = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch(PDOException $e) {
-    $error = "Erreur : " . $e->getMessage();
+    error_log("Erreur récupération missions bénévole : " . $e->getMessage());
+    $error = "Une erreur est survenue lors de la récupération de vos missions.";
 }
 
 // Grouper les missions par mois

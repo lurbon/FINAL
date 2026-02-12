@@ -1,26 +1,18 @@
 <?php
 // Charger la configuration
-		require_once('config.php');
-     require_once('auth.php');
-verifierRole(['admin', 'chauffeur','gestionnaire']);
-// Connexion à la base de données
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
+require_once('config.php');
+require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
+verifierRole(['admin', 'chauffeur', 'gestionnaire']);
 
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Récupérer tous les bénévoles
 $benevoles = [];
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$secteur_filter = isset($_GET['secteur']) ? $_GET['secteur'] : '';
+$search = get('search');
+$secteur_filter = get('secteur');
 
 try {
     $sql = "SELECT * FROM EPI_benevole WHERE 1=1";
@@ -42,7 +34,8 @@ try {
     $stmt->execute($params);
     $benevoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
-    $error = "Erreur lors de la récupération des bénévoles : " . $e->getMessage();
+    error_log("Erreur récupération bénévoles: " . $e->getMessage());
+    $error = "Erreur lors de la récupération des données.";
 }
 
 // Récupérer les secteurs pour le filtre
