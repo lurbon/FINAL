@@ -22,6 +22,16 @@ require_once(__DIR__ . '/security-headers.php');
 // TRAITEMENT POST : Authentification directe
 // ============================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Toujours retourner du JSON pour les requêtes POST
+    header('Content-Type: application/json');
+
+    // Capturer les erreurs PHP fatales pour renvoyer du JSON au lieu d'une page vide
+    set_error_handler(function($severity, $message, $file, $line) {
+        throw new ErrorException($message, 0, $severity, $file, $line);
+    });
+
+    try {
+
     // Charger la configuration de la base de données
     require_once('config.php');
     require_once('phpass_compat.php');
@@ -256,7 +266,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Retourner le succès
-    header('Content-Type: application/json');
     echo json_encode([
         'success' => true,
         'message' => 'Connexion réussie',
@@ -264,6 +273,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'redirect' => 'dashboard.php'
     ]);
     exit();
+
+    } catch (Throwable $e) {
+        // Capturer TOUTE erreur (PHP, PDO, etc.) et renvoyer du JSON lisible
+        error_log("login.php erreur: " . $e->getMessage() . " dans " . $e->getFile() . ":" . $e->getLine());
+        http_response_code(500);
+        echo json_encode([
+            'error' => true,
+            'message' => 'Erreur serveur: ' . $e->getMessage()
+        ]);
+        exit();
+    }
 }
 
 // ============================================================================
