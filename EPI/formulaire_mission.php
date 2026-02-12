@@ -85,15 +85,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Préparer les données en nettoyant les backslashes
         $data = [
-            ':date_mission' => !empty($_POST['date_mission']) ? $_POST['date_mission'] : null,
-            ':heure_rdv' => !empty($_POST['heure_rdv']) ? $_POST['heure_rdv'] : null,
-            ':id_benevole' => !empty($_POST['id_benevole']) ? $_POST['id_benevole'] : null,
+            ':date_mission' => !empty($_POST['date_mission']) ? sanitize_date($_POST['date_mission']) : null,
+            ':heure_rdv' => !empty($_POST['heure_rdv']) ? sanitize_time($_POST['heure_rdv']) : null,
+            ':id_benevole' => !empty($_POST['id_benevole']) ? sanitize_int($_POST['id_benevole']) : null,
             ':benevole' => !empty($_POST['benevole']) ? cleanBackslashes($_POST['benevole']) : null,
             ':adresse_benevole' => !empty($_POST['adresse_benevole']) ? cleanBackslashes($_POST['adresse_benevole']) : null,
             ':cp_benevole' => !empty($_POST['cp_benevole']) ? cleanBackslashes($_POST['cp_benevole']) : null,
             ':commune_benevole' => !empty($_POST['commune_benevole']) ? cleanBackslashes($_POST['commune_benevole']) : null,
             ':secteur_benevole' => !empty($_POST['secteur_benevole']) ? cleanBackslashes($_POST['secteur_benevole']) : null,
-            ':id_aide' => !empty($_POST['id_aide']) ? $_POST['id_aide'] : null,
+            ':id_aide' => !empty($_POST['id_aide']) ? sanitize_int($_POST['id_aide']) : null,
             ':aide' => !empty($_POST['aide']) ? cleanBackslashes($_POST['aide']) : null,
             ':adresse_aide' => !empty($_POST['adresse_aide']) ? cleanBackslashes($_POST['adresse_aide']) : null,
             ':cp_aide' => !empty($_POST['cp_aide']) ? cleanBackslashes($_POST['cp_aide']) : null,

@@ -4,6 +4,33 @@ require_once 'includes/config.php';
 require_once 'includes/csrf.php';
 require_once 'includes/sanitize.php';
 
+// Rate limiting : max 3 messages par IP toutes les 15 minutes
+define('CONTACT_MAX_ATTEMPTS', 3);
+define('CONTACT_LOCKOUT_DURATION', 900); // 15 minutes
+
+function contactRateLimit(): bool {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $key = 'contact_attempts_' . md5($ip);
+
+    if (!isset($_SESSION[$key])) {
+        $_SESSION[$key] = ['count' => 0, 'first_attempt' => time()];
+    }
+
+    $data = &$_SESSION[$key];
+
+    // Réinitialiser après la période de lockout
+    if ((time() - $data['first_attempt']) > CONTACT_LOCKOUT_DURATION) {
+        $data = ['count' => 0, 'first_attempt' => time()];
+    }
+
+    if ($data['count'] >= CONTACT_MAX_ATTEMPTS) {
+        return false;
+    }
+
+    $data['count']++;
+    return true;
+}
+
 // Générer une question mathématique simple pour le CAPTCHA
 if (!isset($_SESSION['captcha_num1']) || !isset($_SESSION['captcha_num2'])) {
     $_SESSION['captcha_num1'] = rand(1, 10);
@@ -15,6 +42,12 @@ $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_protect();
+
+    // Vérifier le rate limiting avant tout traitement
+    if (!contactRateLimit()) {
+        $message = "Trop de messages envoyés. Veuillez réessayer dans 15 minutes.";
+        $message_type = 'error';
+    } else {
 
     $name = sanitize_text($_POST['name'] ?? '', 200);
     $email = sanitize_text($_POST['email'] ?? '', 254);
@@ -65,7 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // SECURITE : Ne pas utiliser l'email de l'utilisateur dans From
             // (prévient l'injection d'en-têtes email et le spoofing)
-            $headers = "From: noreply@entraide-plus-iroise.fr\r\n";
+            $fromEmail = defined('NOREPLY_EMAIL') ? NOREPLY_EMAIL : 'noreply@entraide-plus-iroise.fr';
+            $headers = "From: " . $fromEmail . "\r\n";
             $headers .= "Reply-To: " . filter_var($email, FILTER_SANITIZE_EMAIL) . "\r\n";
             $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
 
@@ -91,6 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = implode('<br>', array_map(function($err) { return htmlspecialchars($err, ENT_QUOTES, 'UTF-8'); }, $errors));
         $message_type = 'error';
     }
+    } // fin du else rate limiting
 }
 
 // Récupérer les contacts depuis la table EPI_user

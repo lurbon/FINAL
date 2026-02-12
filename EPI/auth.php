@@ -32,9 +32,13 @@ if (session_status() === PHP_SESSION_NONE) {
 // Protection contre XSS, Clickjacking, MIME sniffing, etc.
 require_once(__DIR__ . '/security-headers.php');
 
-// Constantes de configuration
-define('SESSION_TIMEOUT_ABSOLUTE', 10800);  // 3 heures (doit correspondre à login.php)
-define('SESSION_TIMEOUT_INACTIVITY', 3600); // 1 heure (60 minutes)
+// Constantes de configuration (utilise les valeurs de config.php si disponibles)
+if (!defined('SESSION_TIMEOUT_ABSOLUTE')) {
+    define('SESSION_TIMEOUT_ABSOLUTE', defined('SESSION_TIMEOUT_ABSOLUTE_SECONDS') ? SESSION_TIMEOUT_ABSOLUTE_SECONDS : 10800);
+}
+if (!defined('SESSION_TIMEOUT_INACTIVITY')) {
+    define('SESSION_TIMEOUT_INACTIVITY', defined('SESSION_TIMEOUT_INACTIVITY_SECONDS') ? SESSION_TIMEOUT_INACTIVITY_SECONDS : 3600);
+}
 
 /**
  * Vérifie si cette session est toujours la session active pour cet utilisateur
