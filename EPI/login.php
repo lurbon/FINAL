@@ -75,7 +75,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
 
-    // Rechercher l'utilisateur dans la base de donnéessrc
+    // ========================================================================
+    // RATE LIMITING : Utilise MAX_LOGIN_ATTEMPTS et LOGIN_LOCKOUT_SECONDS
+    // ========================================================================
+    $maxAttempts = defined('MAX_LOGIN_ATTEMPTS') ? MAX_LOGIN_ATTEMPTS : 5;
+    $lockoutSeconds = defined('LOGIN_LOCKOUT_SECONDS') ? LOGIN_LOCKOUT_SECONDS : 900;
+
+    try {
+        $stmtRL = $pdo->prepare("
+            SELECT COUNT(*) as nb_echecs
+            FROM connexions_log
+            WHERE ip_address = ?
+            AND statut = 'failed'
+            AND date_connexion > DATE_SUB(NOW(), INTERVAL ? SECOND)
+        ");
+        $stmtRL->execute([$ipAddress, $lockoutSeconds]);
+        $rlData = $stmtRL->fetch(PDO::FETCH_ASSOC);
+
+        if ($rlData && $rlData['nb_echecs'] >= $maxAttempts) {
+            $remaining = ceil($lockoutSeconds / 60);
+            http_response_code(429);
+            echo json_encode([
+                'error' => true,
+                'message' => "Trop de tentatives de connexion. Réessayez dans $remaining minutes."
+            ]);
+            exit();
+        }
+    } catch (PDOException $e) {
+        // En cas d'erreur de rate limiting, on continue (fail-open pour ne pas bloquer)
+        error_log("Rate limiting check failed: " . $e->getMessage());
+    }
+
+    // Rechercher l'utilisateur dans la base de données
     $stmt = $pdo->prepare("
         SELECT u.ID, u.user_login, u.user_pass, u.user_email, u.user_nicename, u.display_name
         FROM EPI_user u
@@ -284,7 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(500);
         echo json_encode([
             'error' => true,
-            'message' => 'Erreur serveur: ' . $e->getMessage()
+            'message' => 'Erreur serveur. Veuillez réessayer.'
         ]);
         exit();
     }

@@ -4,47 +4,112 @@ require_once(__DIR__ . '/../includes/csrf.php');
 require_once(__DIR__ . '/../includes/sanitize.php');
 require_once(__DIR__ . '/../includes/database.php');
 
+// Configuration sécurisée de la session
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 1);
+ini_set('session.cookie_samesite', 'Lax');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Rate limiting : max 3 tentatives par IP toutes les 15 minutes
+define('RESET_MAX_ATTEMPTS', 3);
+define('RESET_LOCKOUT_DURATION', 900);
+
+function resetRateLimit(): bool {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $key = 'epi_reset_attempts_' . md5($ip);
+
+    if (!isset($_SESSION[$key])) {
+        $_SESSION[$key] = ['count' => 0, 'first_attempt' => time()];
+    }
+
+    $data = &$_SESSION[$key];
+
+    if ((time() - $data['first_attempt']) > RESET_LOCKOUT_DURATION) {
+        $data = ['count' => 0, 'first_attempt' => time()];
+    }
+
+    if ($data['count'] >= RESET_MAX_ATTEMPTS) {
+        return false;
+    }
+
+    $data['count']++;
+    return true;
+}
+
+/**
+ * Génère un mot de passe temporaire robuste (12 caractères, mix lettres/chiffres/symboles)
+ */
+function generateStrongTempPassword(int $length = 12): string {
+    $upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    $lower = 'abcdefghjkmnpqrstuvwxyz';
+    $digits = '23456789';
+    $symbols = '!@#$%&*';
+
+    // Garantir au moins un caractère de chaque type
+    $password = $upper[random_int(0, strlen($upper) - 1)]
+              . $lower[random_int(0, strlen($lower) - 1)]
+              . $digits[random_int(0, strlen($digits) - 1)]
+              . $symbols[random_int(0, strlen($symbols) - 1)];
+
+    $all = $upper . $lower . $digits . $symbols;
+    for ($i = strlen($password); $i < $length; $i++) {
+        $password .= $all[random_int(0, strlen($all) - 1)];
+    }
+
+    // Mélanger pour ne pas avoir un pattern prévisible
+    return str_shuffle($password);
+}
+
 $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_protect();
-    $username = sanitize_text($_POST['username'] ?? '', 100);
-    $email = sanitize_text($_POST['email'] ?? '', 254);
 
-    if (empty($username) || empty($email)) {
-        $error = "Tous les champs sont obligatoires";
+    // Vérifier le rate limiting avant tout traitement
+    if (!resetRateLimit()) {
+        $error = "Trop de tentatives. Veuillez réessayer dans 15 minutes.";
     } else {
-        try {
-            $conn = getDBConnection();
+        $username = sanitize_text($_POST['username'] ?? '', 100);
+        $email = sanitize_text($_POST['email'] ?? '', 254);
 
-            // Vérifier si l'utilisateur existe avec cet email
-            $stmt = $conn->prepare("SELECT ID, user_login, user_email, display_name FROM EPI_user WHERE user_login = :username AND user_email = :email");
-            $stmt->execute([':username' => $username, ':email' => $email]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (empty($username) || empty($email)) {
+            $error = "Tous les champs sont obligatoires";
+        } else {
+            try {
+                $conn = getDBConnection();
 
-            if (!$user) {
-                $error = "Nom d'utilisateur ou email incorrect";
-            } else {
-                // Générer un mot de passe temporaire
-                $temp_password = 'Temp' . rand(1000, 9999);
+                // Vérifier si l'utilisateur existe avec cet email
+                $stmt = $conn->prepare("SELECT ID, user_login, user_email, display_name FROM EPI_user WHERE user_login = :username AND user_email = :email");
+                $stmt->execute([':username' => $username, ':email' => $email]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                // Hasher avec bcrypt natif
-                $temp_password_hash = password_hash($temp_password, PASSWORD_BCRYPT);
+                if (!$user) {
+                    // Message générique pour ne pas révéler si le couple existe
+                    $error = "Nom d'utilisateur ou email incorrect";
+                } else {
+                    // Générer un mot de passe temporaire robuste
+                    $temp_password = generateStrongTempPassword(12);
 
-                // Mettre à jour avec le mot de passe temporaire
-                $stmt = $conn->prepare("UPDATE EPI_user SET user_pass = :password WHERE ID = :id");
-                $stmt->execute([
-                    ':password' => $temp_password_hash,
-                    ':id' => $user['ID']
-                ]);
+                    // Hasher avec bcrypt natif
+                    $temp_password_hash = password_hash($temp_password, PASSWORD_BCRYPT);
 
-                $message = "Votre mot de passe a été réinitialisé. Votre mot de passe temporaire est : <strong>" . $temp_password . "</strong><br><br>Veuillez le noter et le changer dès votre première connexion.";
+                    // Mettre à jour avec le mot de passe temporaire
+                    $stmt = $conn->prepare("UPDATE EPI_user SET user_pass = :password WHERE ID = :id");
+                    $stmt->execute([
+                        ':password' => $temp_password_hash,
+                        ':id' => $user['ID']
+                    ]);
+
+                    $message = "Votre mot de passe a été réinitialisé. Votre mot de passe temporaire est : <strong>" . htmlspecialchars($temp_password) . "</strong><br><br>Veuillez le noter et le changer dès votre première connexion.";
+                }
+
+            } catch(PDOException $e) {
+                error_log("Erreur reset_password: " . $e->getMessage());
+                $error = "Une erreur est survenue. Veuillez réessayer.";
             }
-
-        } catch(PDOException $e) {
-            error_log("Erreur reset_password: " . $e->getMessage());
-            $error = "Une erreur est survenue. Veuillez réessayer.";
         }
     }
 }
