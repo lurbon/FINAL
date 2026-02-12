@@ -2,7 +2,7 @@
 require_once 'includes/config.php';
 
 // Creer la table si elle n'existe pas
-$pdo->exec("CREATE TABLE IF NOT EXISTS cinema (
+$pdo->exec("CREATE TABLE IF NOT EXISTS EPI_cinema (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -26,7 +26,7 @@ $upcoming = $stmt->fetchAll();
 
 // Films passes (les 3 derniers mois)
 $three_months_ago = date('Y-m-d', strtotime('-3 months'));
-$stmt = $pdo->prepare("SELECT * FROM cinema WHERE published = 1 AND session_date < ? AND session_date >= ? ORDER BY session_date DESC");
+$stmt = $pdo->prepare("SELECT * FROM EPI_cinema WHERE published = 1 AND session_date < ? AND session_date >= ? ORDER BY session_date DESC");
 $stmt->execute([$today, $three_months_ago]);
 $past = $stmt->fetchAll();
 
