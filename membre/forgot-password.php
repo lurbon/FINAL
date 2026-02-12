@@ -4,7 +4,7 @@
  * Permet de générer un lien de réinitialisation
  */
 
-require_once '../includes/config.php';
+require_once 'config.php';
 
 $message = '';
 $message_type = '';
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mot de passe oublié - Entraide Plus Iroise</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

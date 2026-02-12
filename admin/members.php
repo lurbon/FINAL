@@ -106,7 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } catch (PDOException $e) {
-        $message = "Erreur : " . $e->getMessage();
+        error_log("Erreur members.php: " . $e->getMessage());
+        $message = "Erreur lors de l'enregistrement. Veuillez réessayer.";
         $message_type = 'error';
     }
 }

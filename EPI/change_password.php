@@ -1,17 +1,16 @@
 <?php
 require_once('config.php');
 require_once('phpass_compat.php');
-
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
+require_once(__DIR__ . '/../includes/csrf.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 
 $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
+    csrf_protect();
+    $username = sanitize_text($_POST['username'] ?? '', 100);
     $old_password = $_POST['old_password'] ?? '';
     $new_password = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
@@ -25,8 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Le nouveau mot de passe doit contenir au moins 6 caractères";
     } else {
         try {
-            $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $conn = getDBConnection();
 
             // Vérifier l'utilisateur et l'ancien mot de passe
             $stmt = $conn->prepare("SELECT ID, user_pass FROM EPI_user WHERE user_login = :username");
@@ -62,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
         } catch(PDOException $e) {
-            $error = "Erreur : " . $e->getMessage();
+            error_log("Erreur change_password: " . $e->getMessage());
+            $error = "Une erreur est survenue. Veuillez réessayer.";
         }
     }
 }
@@ -264,6 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if (!$message): ?>
         <form method="POST" action="">
+            <?php echo csrf_field(); ?>
             <div class="form-group">
                 <label for="username">Nom d'utilisateur</label>
                 <input 

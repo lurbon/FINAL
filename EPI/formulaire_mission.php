@@ -2,24 +2,16 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/csrf.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 verifierRole(['admin', 'gestionnaire']);
-
-// Connexion à la base de données
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
 
 $message = "";
 $messageType = "";
 
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Récupérer les bénévoles pour la liste déroulante
 $benevoles = [];
@@ -56,6 +48,7 @@ try {
 
 // Traitement du formulaire
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    csrf_protect();
     try {
         // Fonction pour nettoyer les backslashes multiples qui peuvent s'accumuler
         function cleanBackslashes($value) {
@@ -92,15 +85,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Préparer les données en nettoyant les backslashes
         $data = [
-            ':date_mission' => !empty($_POST['date_mission']) ? $_POST['date_mission'] : null,
-            ':heure_rdv' => !empty($_POST['heure_rdv']) ? $_POST['heure_rdv'] : null,
-            ':id_benevole' => !empty($_POST['id_benevole']) ? $_POST['id_benevole'] : null,
+            ':date_mission' => !empty($_POST['date_mission']) ? sanitize_date($_POST['date_mission']) : null,
+            ':heure_rdv' => !empty($_POST['heure_rdv']) ? sanitize_time($_POST['heure_rdv']) : null,
+            ':id_benevole' => !empty($_POST['id_benevole']) ? sanitize_int($_POST['id_benevole']) : null,
             ':benevole' => !empty($_POST['benevole']) ? cleanBackslashes($_POST['benevole']) : null,
             ':adresse_benevole' => !empty($_POST['adresse_benevole']) ? cleanBackslashes($_POST['adresse_benevole']) : null,
             ':cp_benevole' => !empty($_POST['cp_benevole']) ? cleanBackslashes($_POST['cp_benevole']) : null,
             ':commune_benevole' => !empty($_POST['commune_benevole']) ? cleanBackslashes($_POST['commune_benevole']) : null,
             ':secteur_benevole' => !empty($_POST['secteur_benevole']) ? cleanBackslashes($_POST['secteur_benevole']) : null,
-            ':id_aide' => !empty($_POST['id_aide']) ? $_POST['id_aide'] : null,
+            ':id_aide' => !empty($_POST['id_aide']) ? sanitize_int($_POST['id_aide']) : null,
             ':aide' => !empty($_POST['aide']) ? cleanBackslashes($_POST['aide']) : null,
             ':adresse_aide' => !empty($_POST['adresse_aide']) ? cleanBackslashes($_POST['adresse_aide']) : null,
             ':cp_aide' => !empty($_POST['cp_aide']) ? cleanBackslashes($_POST['cp_aide']) : null,
@@ -124,8 +117,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
         
     } catch(PDOException $e) {
-        $errorMsg = urlencode($e->getMessage());
-        header("Location: " . $_SERVER['PHP_SELF'] . "?error=" . $errorMsg);
+        error_log("Erreur insertion mission: " . $e->getMessage());
+        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
         exit();
     }
 }
@@ -135,7 +128,7 @@ if (isset($_GET['success'])) {
     $message = "✅ Mission créée avec succès !";
     $messageType = "success";
 } elseif (isset($_GET['error'])) {
-    $message = "❌ Erreur : " . urldecode($_GET['error']);
+    $message = "Erreur lors de l'enregistrement. Veuillez réessayer.";
     $messageType = "error";
 }
 
@@ -496,11 +489,12 @@ $dateJour = date('Y-m-d');
         
         <?php if($message): ?>
             <div class="message <?php echo $messageType; ?>">
-                <?php echo $message; ?>
+                <?php echo e($message); ?>
             </div>
         <?php endif; ?>
         
         <form method="POST" action="" id="missionForm">
+            <?php echo csrf_field(); ?>
             <!-- 1. AIDÉ -->
             <h3>🤝 Aidé</h3>
             <div class="form-group">

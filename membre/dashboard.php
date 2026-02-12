@@ -4,6 +4,13 @@
  * Page d'accueil après connexion
  */
 
+// Configuration sécurisée des sessions
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 1);
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.use_strict_mode', 1);
+ini_set('session.use_only_cookies', 1);
+
 session_start();
 require_once '../includes/config.php';
 
@@ -12,6 +19,18 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header('Location: login.php');
     exit;
 }
+
+// Vérifier les timeouts de session
+$now = time();
+if (
+    (isset($_SESSION['membre_login_time']) && ($now - $_SESSION['membre_login_time']) > 10800) ||
+    (isset($_SESSION['membre_last_activity']) && ($now - $_SESSION['membre_last_activity']) > 3600)
+) {
+    session_destroy();
+    header('Location: login.php?error=' . urlencode('Session expirée. Veuillez vous reconnecter.'));
+    exit;
+}
+$_SESSION['membre_last_activity'] = $now;
 
 $user_id = $_SESSION['user_id'];
 $user_name = $_SESSION['user_name'];

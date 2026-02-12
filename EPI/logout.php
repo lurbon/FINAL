@@ -55,6 +55,6 @@ if (ini_get("session.use_cookies")) {
 // Détruire la session
 session_destroy();
 
-// Redirection vers la page de login avec un message de succès
-header('Location: ./login.php?message=' . urlencode('Déconnexion réussie. À bientôt ' . $userName . ' !'));
+// Redirection vers la page d'accueil du site web
+header('Location: ../index.php?message=' . urlencode('Déconnexion réussie. À bientôt ' . $userName . ' !'));
 exit();

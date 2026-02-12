@@ -6,7 +6,9 @@ RewriteEngine On
     Order Allow,Deny
     Deny from all
 </FilesMatch>
-
+<Files "config.php">
+    Require all denied
+</Files>
 # Bloquer l'accès au dossier .git
 RedirectMatch 404 /\.git
 

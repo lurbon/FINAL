@@ -1,19 +1,11 @@
 <?php
 // Charger la configuration
 require_once('config.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
-
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Fonction pour générer un token sécurisé
 function generateSecureToken($missionId, $benevoleEmail) {
@@ -362,8 +354,9 @@ if ($missionId && $email && $token) {
                 }
             }
         } catch(PDOException $e) {
+            error_log("Erreur inscription mission : " . $e->getMessage());
             $status = 'error';
-            $message = 'Erreur technique : ' . $e->getMessage();
+            $message = 'Une erreur technique est survenue. Veuillez réessayer ou contacter l\'administrateur.';
         }
     }
 } else {

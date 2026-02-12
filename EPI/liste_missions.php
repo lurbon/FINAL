@@ -1,19 +1,12 @@
 <?php
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
 verifierRole(['admin', 'benevole','chauffeur','gestionnaire']);
 
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
-
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Fonction pour obtenir le nom du mois en français
 function getMoisFrancais($date) {
@@ -61,7 +54,8 @@ try {
     $stmt->execute($params);
     $missions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
-    $error = "Erreur : " . $e->getMessage();
+    error_log("Erreur récupération missions : " . $e->getMessage());
+    $error = "Une erreur est survenue lors de la récupération des missions.";
 }
 
 // Récupérer les secteurs uniques pour le filtre

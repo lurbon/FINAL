@@ -4,11 +4,15 @@
  * Pour l'espace membre - permet à chaque membre de changer son propre mot de passe
  */
 
-session_start();
-require_once '../includes/config.php';
+require_once('auth.php');
+require_once('config.php');
+
+// Récupérer l'utilisateur connecté
+$utilisateur = getUtilisateurConnecte();
+$token = getToken();
 
 // Vérifier que l'utilisateur est connecté
-if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
+if (!$utilisateur || !$token) {
     header('Location: login.php');
     exit;
 }
@@ -22,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_password = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     
-    $user_id = $_SESSION['user_id'];
+    $user_id = $utilisateur['id'];
     
     // Validation
     if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
@@ -36,15 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message_type = 'error';
     } else {
         // Récupérer le mot de passe actuel de l'utilisateur
-        $stmt = $pdo->prepare("SELECT user_password FROM EPI_user WHERE ID = ?");
+        $stmt = $pdo->prepare("SELECT user_pass FROM EPI_user WHERE ID = ?");
         $stmt->execute([$user_id]);
         $user = $stmt->fetch();
         
-        if ($user && password_verify($current_password, $user['user_password'])) {
+        if ($user && password_verify($current_password, $user['user_pass'])) {
             // Le mot de passe actuel est correct, on peut le changer
             $new_hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
             
-            $stmt = $pdo->prepare("UPDATE EPI_user SET user_password = ? WHERE ID = ?");
+            $stmt = $pdo->prepare("UPDATE EPI_user SET user_pass = ? WHERE ID = ?");
             if ($stmt->execute([$new_hashed_password, $user_id])) {
                 $message = "Votre mot de passe a été modifié avec succès";
                 $message_type = 'success';
@@ -70,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modifier mon mot de passe - Espace Membre</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
     <style>
         .member-container {
             max-width: 600px;
@@ -229,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="submit" class="btn btn-primary">
                         ✓ Modifier mon mot de passe
                     </button>
-                    <a href="espace-membre.php" class="btn btn-secondary">
+                    <a href="dashboard.php" class="btn btn-secondary">
                         ← Retour
                     </a>
                 </div>

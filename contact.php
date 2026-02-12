@@ -1,6 +1,35 @@
 <?php
 
 require_once 'includes/config.php';
+require_once 'includes/csrf.php';
+require_once 'includes/sanitize.php';
+
+// Rate limiting : max 3 messages par IP toutes les 15 minutes
+define('CONTACT_MAX_ATTEMPTS', 3);
+define('CONTACT_LOCKOUT_DURATION', 900); // 15 minutes
+
+function contactRateLimit(): bool {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $key = 'contact_attempts_' . md5($ip);
+
+    if (!isset($_SESSION[$key])) {
+        $_SESSION[$key] = ['count' => 0, 'first_attempt' => time()];
+    }
+
+    $data = &$_SESSION[$key];
+
+    // Réinitialiser après la période de lockout
+    if ((time() - $data['first_attempt']) > CONTACT_LOCKOUT_DURATION) {
+        $data = ['count' => 0, 'first_attempt' => time()];
+    }
+
+    if ($data['count'] >= CONTACT_MAX_ATTEMPTS) {
+        return false;
+    }
+
+    $data['count']++;
+    return true;
+}
 
 // Générer une question mathématique simple pour le CAPTCHA
 if (!isset($_SESSION['captcha_num1']) || !isset($_SESSION['captcha_num2'])) {
@@ -12,47 +41,53 @@ $message = '';
 $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = $_POST['name'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $subject = $_POST['subject'] ?? '';
-    $user_message = $_POST['message'] ?? '';
+    csrf_protect();
+
+    // Vérifier le rate limiting avant tout traitement
+    if (!contactRateLimit()) {
+        $message = "Trop de messages envoyés. Veuillez réessayer dans 15 minutes.";
+        $message_type = 'error';
+    } else {
+
+    $name = sanitize_text($_POST['name'] ?? '', 200);
+    $email = sanitize_text($_POST['email'] ?? '', 254);
+    $subject = sanitize_text($_POST['subject'] ?? '', 200);
+    $user_message = sanitize_text($_POST['message'] ?? '', 5000);
     $captcha_answer = $_POST['captcha'] ?? '';
-    
+
     // Validation
     $errors = [];
-    
+
     if (empty($name)) {
         $errors[] = "Le nom est requis";
     }
-    
+
     if (empty($email)) {
         $errors[] = "L'email est requis";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = "L'email n'est pas valide";
     }
-    
+
     if (empty($user_message)) {
         $errors[] = "Le message est requis";
     }
-    
+
     // Validation du CAPTCHA
     $expected_answer = $_SESSION['captcha_num1'] + $_SESSION['captcha_num2'];
     if (empty($captcha_answer)) {
         $errors[] = "Veuillez répondre à la question de sécurité";
     } elseif ((int)$captcha_answer !== $expected_answer) {
         $errors[] = "La réponse à la question de sécurité est incorrecte";
-        // Régénérer une nouvelle question
         $_SESSION['captcha_num1'] = rand(1, 10);
         $_SESSION['captcha_num2'] = rand(1, 10);
     }
-    
+
     if (empty($errors)) {
-        // Enregistrer dans la base de données
         try {
             $stmt = $pdo->prepare("INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)");
             $stmt->execute([$name, $email, $subject, $user_message]);
-            
-            // Envoyer l'email
+
+            // Envoyer l'email - From fixe pour éviter l'injection d'en-têtes
             $to = ADMIN_EMAIL;
             $email_subject = "Nouveau message de contact - " . ($subject ?: 'Sans objet');
             $email_body = "Nouveau message de contact\n\n";
@@ -60,19 +95,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email_body .= "Email: $email\n";
             $email_body .= "Sujet: $subject\n\n";
             $email_body .= "Message:\n$user_message\n";
-            
-            $headers = "From: $email\r\n";
-            $headers .= "Reply-To: $email\r\n";
+
+            // SECURITE : Ne pas utiliser l'email de l'utilisateur dans From
+            // (prévient l'injection d'en-têtes email et le spoofing)
+            $fromEmail = defined('NOREPLY_EMAIL') ? NOREPLY_EMAIL : 'noreply@entraide-plus-iroise.fr';
+            $headers = "From: " . $fromEmail . "\r\n";
+            $headers .= "Reply-To: " . filter_var($email, FILTER_SANITIZE_EMAIL) . "\r\n";
             $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-            
+
             if (mail($to, $email_subject, $email_body, $headers)) {
                 $message = "Votre message a bien été envoyé. Nous vous répondrons dans les plus brefs délais.";
                 $message_type = 'success';
-                
-                // Réinitialiser les champs
+
                 $name = $email = $subject = $user_message = '';
-                
-                // Régénérer une nouvelle question CAPTCHA
+
                 $_SESSION['captcha_num1'] = rand(1, 10);
                 $_SESSION['captcha_num2'] = rand(1, 10);
             } else {
@@ -80,13 +116,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message_type = 'success';
             }
         } catch (PDOException $e) {
+            error_log("Erreur contact: " . $e->getMessage());
             $message = "Une erreur s'est produite lors de l'envoi du message. Veuillez réessayer.";
             $message_type = 'error';
         }
     } else {
-        $message = implode('<br>', $errors);
+        // Échapper chaque erreur individuellement pour prévenir le XSS
+        $message = implode('<br>', array_map(function($err) { return htmlspecialchars($err, ENT_QUOTES, 'UTF-8'); }, $errors));
         $message_type = 'error';
     }
+    } // fin du else rate limiting
 }
 
 // Récupérer les contacts depuis la table EPI_user
@@ -241,6 +280,7 @@ include 'includes/header.php';
             <?php endif; ?>
             
             <form id="contact-form" method="POST" action="" style="background: white; padding: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+                <?php echo csrf_field(); ?>
                 <div class="form-group">
                     <label for="name" class="form-label">Nom complet <span style="color: var(--error);">*</span></label>
                     <input type="text" 

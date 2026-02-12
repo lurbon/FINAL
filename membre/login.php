@@ -1,45 +1,123 @@
 <?php
 /**
- * PAGE DE CONNEXION - Espace Membre
+ * PAGE DE CONNEXION - Espace Membre (SÉCURISÉ)
+ *
+ * Protections :
+ * - Configuration sécurisée des sessions (httponly, secure, samesite)
+ * - Protection CSRF
+ * - Rate limiting (5 tentatives / 15 min)
+ * - Timeout de session (3h absolu, 1h inactivité)
+ * - Régénération d'ID de session à la connexion
  */
 
-session_start();
-require_once '../includes/config.php';
+// Configuration sécurisée des sessions AVANT session_start()
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 1);
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.use_strict_mode', 1);
+ini_set('session.use_only_cookies', 1);
 
-// Si déjà connecté, rediriger vers le dashboard
+session_start();
+
+require_once '../includes/config.php';
+require_once '../includes/csrf.php';
+require_once '../includes/sanitize.php';
+
+// Constantes de session pour l'espace membre
+define('MEMBRE_SESSION_TIMEOUT_ABSOLUTE', 10800);  // 3 heures
+define('MEMBRE_SESSION_TIMEOUT_INACTIVITY', 3600);  // 1 heure
+define('MEMBRE_MAX_LOGIN_ATTEMPTS', 5);
+define('MEMBRE_LOCKOUT_DURATION', 900); // 15 minutes
+
+// Vérifier timeout si déjà connecté
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
-    header('Location: dashboard.php');
-    exit;
+    $now = time();
+    $expired = false;
+
+    if (isset($_SESSION['membre_login_time']) && ($now - $_SESSION['membre_login_time']) > MEMBRE_SESSION_TIMEOUT_ABSOLUTE) {
+        $expired = true;
+    }
+    if (isset($_SESSION['membre_last_activity']) && ($now - $_SESSION['membre_last_activity']) > MEMBRE_SESSION_TIMEOUT_INACTIVITY) {
+        $expired = true;
+    }
+
+    if ($expired) {
+        session_destroy();
+        session_start();
+        $message = "Votre session a expiré. Veuillez vous reconnecter.";
+        $message_type = 'error';
+    } else {
+        header('Location: dashboard.php');
+        exit;
+    }
 }
 
-$message = '';
-$message_type = '';
+$message = $message ?? '';
+$message_type = $message_type ?? '';
+
+// Rate limiting basé sur l'IP
+function checkRateLimit(): bool {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $key = 'membre_login_attempts_' . md5($ip);
+
+    if (!isset($_SESSION[$key])) {
+        $_SESSION[$key] = ['count' => 0, 'first_attempt' => time()];
+    }
+
+    $data = &$_SESSION[$key];
+
+    // Réinitialiser après la période de lockout
+    if ((time() - $data['first_attempt']) > MEMBRE_LOCKOUT_DURATION) {
+        $data = ['count' => 0, 'first_attempt' => time()];
+    }
+
+    if ($data['count'] >= MEMBRE_MAX_LOGIN_ATTEMPTS) {
+        return false; // Bloqué
+    }
+
+    $data['count']++;
+    return true;
+}
 
 // Traitement de la connexion
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
+    csrf_protect();
+
+    $email = sanitize_email($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-    
+
     if (empty($email) || empty($password)) {
         $message = "Veuillez remplir tous les champs";
         $message_type = 'error';
+    } elseif (!checkRateLimit()) {
+        $message = "Trop de tentatives. Réessayez dans 15 minutes.";
+        $message_type = 'error';
     } else {
         // Récupérer l'utilisateur
-        $stmt = $pdo->prepare("SELECT ID, user_nicename, user_email, user_pass, user_role 
-                               FROM EPI_user 
-                               WHERE user_email = ? 
+        $stmt = $pdo->prepare("SELECT ID, user_nicename, user_email, user_pass, user_role
+                               FROM EPI_user
+                               WHERE user_email = ?
                                LIMIT 1");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
-        
+
         if ($user && password_verify($password, $user['user_pass'])) {
+            // Régénérer l'ID de session (protection session fixation)
+            session_regenerate_id(true);
+
             // Connexion réussie
             $_SESSION['user_id'] = $user['ID'];
             $_SESSION['user_name'] = $user['user_nicename'];
             $_SESSION['user_email'] = $user['user_email'];
             $_SESSION['user_role'] = $user['user_role'];
             $_SESSION['logged_in'] = true;
-            
+            $_SESSION['membre_login_time'] = time();
+            $_SESSION['membre_last_activity'] = time();
+
+            // Réinitialiser le compteur de tentatives
+            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            unset($_SESSION['membre_login_attempts_' . md5($ip)]);
+
             header('Location: dashboard.php');
             exit;
         } else {
@@ -188,6 +266,7 @@ if (isset($_GET['message']) && $_GET['message'] === 'password_changed') {
             <?php endif; ?>
             
             <form method="POST" autocomplete="on">
+                <?php echo csrf_field(); ?>
                 <div class="form-group">
                     <label class="form-label">Adresse email</label>
                     <input type="email" 

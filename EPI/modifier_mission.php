@@ -1,23 +1,17 @@
 <?php
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
+require_once(__DIR__ . '/../includes/csrf.php');
 verifierRole(['admin', 'gestionnaire']);
 
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 $message = "";
 $messageType = "";
 $mission = null;
-
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
 
 // Récupérer les bénévoles
 $benevoles = [];
@@ -176,6 +170,7 @@ try {
 
 // Traitement de la suppression
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'delete' && isset($_POST['id_mission'])) {
+    csrf_protect();
     try {
         $stmt = $conn->prepare("SELECT date_mission, aide FROM EPI_mission WHERE id_mission = :id");
         $stmt->execute([':id' => $_POST['id_mission']]);
@@ -200,14 +195,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         exit();
         
     } catch(PDOException $e) {
-        $errorMsg = urlencode($e->getMessage());
-        header("Location: " . $_SERVER['PHP_SELF'] . "?error=" . $errorMsg);
+        error_log("Erreur modifier_mission.php (suppression): " . $e->getMessage());
+        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
         exit();
     }
 }
 
 // Traitement de la modification
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id_mission']) && (!isset($_POST['action']) || $_POST['action'] != 'delete')) {
+    csrf_protect();
     try {
         $stmt = $conn->prepare("SELECT date_mission FROM EPI_mission WHERE id_mission = :id");
         $stmt->execute([':id' => $_POST['id_mission']]);
@@ -219,11 +215,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id_mission']) && (!iss
             exit();
         }
     } catch(PDOException $e) {
-        $errorMsg = urlencode($e->getMessage());
-        header("Location: " . $_SERVER['PHP_SELF'] . "?error=" . $errorMsg);
+        error_log("Erreur modifier_mission.php (verification date): " . $e->getMessage());
+        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
         exit();
     }
-    
+
     try {
         // Calculer la durée
         $duree = null;
@@ -296,8 +292,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id_mission']) && (!iss
         exit();
         
     } catch(PDOException $e) {
-        $errorMsg = urlencode($e->getMessage());
-        header("Location: " . $_SERVER['PHP_SELF'] . "?error=" . $errorMsg . "&id=" . $_POST['id_mission']);
+        error_log("Erreur modifier_mission.php (modification): " . $e->getMessage());
+        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1&id=" . $_POST['id_mission']);
         exit();
     }
 }
@@ -318,7 +314,8 @@ if (isset($_GET['id'])) {
             $mission = null;
         }
     } catch(PDOException $e) {
-        $message = "❌ Erreur : " . $e->getMessage();
+        error_log("Erreur modifier_mission.php (chargement): " . $e->getMessage());
+        $message = "Une erreur est survenue lors du chargement.";
         $messageType = "error";
     }
 }
@@ -330,7 +327,7 @@ if (isset($_GET['success'])) {
     $message = "✅ Mission supprimée avec succès !";
     $messageType = "success";
 } elseif (isset($_GET['error'])) {
-    $message = "❌ Erreur : " . urldecode($_GET['error']);
+    $message = "Une erreur est survenue lors de l'operation.";
     $messageType = "error";
 }
 ?>
@@ -874,6 +871,7 @@ if (isset($_GET['success'])) {
         </div>
 
         <form method="POST" action="" id="mainForm">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="id_mission" value="<?php echo $mission['id_mission']; ?>">
 
             <h3>📅 Date et Heure de rendez-vous</h3>
@@ -1075,6 +1073,7 @@ if (isset($_GET['success'])) {
 
         <!-- Formulaire caché pour la suppression -->
         <form method="POST" action="" id="deleteForm" style="display: none;">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="id_mission" value="<?php echo $mission['id_mission']; ?>">
             <input type="hidden" name="action" value="delete">
         </form>

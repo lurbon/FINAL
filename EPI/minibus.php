@@ -2,21 +2,12 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
-verifierRole(['admin', 'chauffeur','gestionnaire']);
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
+verifierRole(['admin', 'chauffeur', 'gestionnaire']);
 
-// Connexion à la base de données
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
-
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die(json_encode(['error' => 'Erreur de connexion : ' . $e->getMessage()]));
-}
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 // Gestion des requêtes AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

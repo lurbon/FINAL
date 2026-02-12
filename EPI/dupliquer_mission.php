@@ -1,23 +1,17 @@
 <?php
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
+require_once(__DIR__ . '/../includes/csrf.php');
 verifierRole(['admin', 'gestionnaire']);
 
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 $message = "";
 $messageType = "";
 $mission = null;
-
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
 
 // Récupérer toutes les missions pour le filtre (sans restriction de date)
 $missions = [];
@@ -28,11 +22,12 @@ try {
     $stmt->execute();
     $missions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
-    $error = "Erreur : " . $e->getMessage();
+    error_log("Erreur dupliquer_mission.php (liste missions): " . $e->getMessage());
 }
 
 // Traitement de la duplication
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'duplicate') {
+    csrf_protect();
     try {
         $id_mission = $_POST['id_mission'];
         $nb_semaines = (int)$_POST['nb_semaines'];
@@ -135,8 +130,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         exit();
         
     } catch(Exception $e) {
-        $errorMsg = urlencode($e->getMessage());
-        header("Location: " . $_SERVER['PHP_SELF'] . "?error=" . $errorMsg);
+        error_log("Erreur dupliquer_mission.php: " . $e->getMessage());
+        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
         exit();
     }
 }
@@ -153,17 +148,18 @@ if (isset($_GET['id'])) {
             $messageType = "error";
         }
     } catch(PDOException $e) {
-        $message = "❌ Erreur : " . $e->getMessage();
+        error_log("Erreur dupliquer_mission.php (chargement): " . $e->getMessage());
+        $message = "Une erreur est survenue lors du chargement.";
         $messageType = "error";
     }
 }
 
 // Messages de succès/erreur
 if (isset($_GET['success'])) {
-    $message = urldecode($_GET['success']);
+    $message = "Duplication effectuee avec succes.";
     $messageType = "success";
 } elseif (isset($_GET['error'])) {
-    $message = "❌ Erreur : " . urldecode($_GET['error']);
+    $message = "Une erreur est survenue lors de la duplication.";
     $messageType = "error";
 }
 
@@ -601,6 +597,7 @@ function formatDateFr($date) {
                 </div>
 
                 <form method="POST" action="" id="duplicateForm">
+                    <?php echo csrf_field(); ?>
                     <input type="hidden" name="action" value="duplicate">
                     <input type="hidden" name="id_mission" value="<?php echo $mission['id_mission']; ?>">
 

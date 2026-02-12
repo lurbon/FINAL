@@ -4,7 +4,7 @@
  * Utilise le token généré par forgot-password.php
  */
 
-require_once '../includes/config.php';
+require_once 'config.php';
 
 $message = '';
 $message_type = '';
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
         $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
         
         // Mettre à jour le mot de passe et supprimer le token
-        $stmt = $pdo->prepare("UPDATE EPI_user SET user_password = ?, reset_token = NULL, reset_expiry = NULL WHERE ID = ?");
+        $stmt = $pdo->prepare("UPDATE EPI_user SET user_pass = ?, reset_token = NULL, reset_expiry = NULL WHERE ID = ?");
         
         if ($stmt->execute([$hashed_password, $user_id])) {
             $message = "Votre mot de passe a été réinitialisé avec succès ! Vous pouvez maintenant vous connecter.";
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Réinitialiser mon mot de passe - Entraide Plus Iroise</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

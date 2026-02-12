@@ -64,7 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $message_type = 'success';
     } catch (PDOException $e) {
-        $message = "Erreur : " . $e->getMessage();
+        error_log("Erreur news.php: " . $e->getMessage());
+        $message = "Erreur lors de l'enregistrement. Veuillez réessayer.";
         $message_type = 'error';
     }
 }

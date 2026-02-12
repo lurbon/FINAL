@@ -2,27 +2,20 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
+require_once(__DIR__ . '/../includes/sanitize.php');
+require_once(__DIR__ . '/../includes/database.php');
+require_once(__DIR__ . '/../includes/csrf.php');
 verifierRole('admin');
 
-// Connexion à la base de données
-$serveur = DB_HOST;
-$utilisateur = DB_USER;
-$motdepasse = DB_PASSWORD;
-$base = DB_NAME;
+// Connexion PDO centralisée
+$conn = getDBConnection();
 
 $message = "";
 $messageType = "";
 
-// Connexion PDO
-try {
-    $conn = new PDO("mysql:host=$serveur;dbname=$base;charset=utf8mb4", $utilisateur, $motdepasse);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erreur de connexion : " . $e->getMessage());
-}
-
 // Traitement de la mise à jour GLOBALE
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['benevoles'])) {
+    csrf_protect();
     try {
         $conn->beginTransaction();
         $updateCount = 0;
@@ -58,7 +51,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['benevoles'])) {
         
     } catch(PDOException $e) {
         $conn->rollBack();
-        $message = "❌ Erreur : " . $e->getMessage();
+        error_log("Erreur mise à jour paiements bénévoles : " . $e->getMessage());
+        $message = "Une erreur est survenue lors de la mise à jour.";
         $messageType = "error";
     }
 }
@@ -101,7 +95,8 @@ try {
     $benevoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch(PDOException $e) {
-    $error = "Erreur : " . $e->getMessage();
+    error_log("Erreur récupération bénévoles paiements : " . $e->getMessage());
+    $error = "Une erreur est survenue lors de la récupération des données.";
 }
 ?>
 <!DOCTYPE html>
@@ -721,6 +716,7 @@ try {
         </div>
 
         <form method="POST" id="mainForm">
+            <?php echo csrf_field(); ?>
             <div class="save-bar">
                 <div class="save-bar-text">
                     💡 Modifiez les champs directement dans le tableau ci-dessous
