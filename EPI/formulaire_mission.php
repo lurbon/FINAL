@@ -5,7 +5,7 @@ require_once('auth.php');
 require_once(__DIR__ . '/../includes/csrf.php');
 require_once(__DIR__ . '/../includes/sanitize.php');
 require_once(__DIR__ . '/../includes/database.php');
-verifierRole(['admin', 'gestionnaire']);
+verifierfonction(['admin', 'gestionnaire']);
 
 $message = "";
 $messageType = "";

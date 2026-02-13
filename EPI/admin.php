@@ -2,7 +2,7 @@
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
-verifierRole(['admin']);
+verifierfonction(['admin']);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -224,7 +224,7 @@ verifierRole(['admin']);
             </a>
 
 
-            <a href="logs_connexions.php" class="admin-link">
+            <a href="../admin/auth-logs.php" class="admin-link">
                 <div class="icon">📋</div>
                 <div class="text">
                     <div class="title">Logs de Connexions</div>

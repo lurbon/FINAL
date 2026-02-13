@@ -1,136 +1,126 @@
 <?php
 /**
- * PAGE DE CONNEXION - Espace Membre (SÉCURISÉ)
- *
- * Protections :
- * - Configuration sécurisée des sessions (httponly, secure, samesite)
- * - Protection CSRF
- * - Rate limiting (5 tentatives / 15 min)
- * - Timeout de session (3h absolu, 1h inactivité)
- * - Régénération d'ID de session à la connexion
+ * PAGE DE CONNEXION - Espace Membre (UNIFIÉ & SÉCURISÉ)
+ * 
+ * Utilise les classes centralisées :
+ * - PasswordManager : Vérification et hashing
+ * - SessionManager : Gestion des sessions
+ * - RateLimiter : Protection brute-force
+ * 
+ * @version 2.0
+ * @author Entraide Plus Iroise
  */
 
-// Configuration sécurisée des sessions AVANT session_start()
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1);
-ini_set('session.cookie_samesite', 'Lax');
-ini_set('session.use_strict_mode', 1);
-ini_set('session.use_only_cookies', 1);
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/sanitize.php';
+require_once __DIR__ . '/../includes/auth/PasswordManager.php';
+require_once __DIR__ . '/../includes/auth/SessionManager.php';
+require_once __DIR__ . '/../includes/auth/RateLimiter.php';
 
-session_start();
+// Initialiser la session sécurisée
+SessionManager::init();
 
-require_once '../includes/config.php';
-require_once '../includes/csrf.php';
-require_once '../includes/sanitize.php';
-
-// Constantes de session pour l'espace membre
-define('MEMBRE_SESSION_TIMEOUT_ABSOLUTE', 10800);  // 3 heures
-define('MEMBRE_SESSION_TIMEOUT_INACTIVITY', 3600);  // 1 heure
-define('MEMBRE_MAX_LOGIN_ATTEMPTS', 5);
-define('MEMBRE_LOCKOUT_DURATION', 900); // 15 minutes
-
-// Vérifier timeout si déjà connecté
-if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
-    $now = time();
-    $expired = false;
-
-    if (isset($_SESSION['membre_login_time']) && ($now - $_SESSION['membre_login_time']) > MEMBRE_SESSION_TIMEOUT_ABSOLUTE) {
-        $expired = true;
-    }
-    if (isset($_SESSION['membre_last_activity']) && ($now - $_SESSION['membre_last_activity']) > MEMBRE_SESSION_TIMEOUT_INACTIVITY) {
-        $expired = true;
-    }
-
-    if ($expired) {
-        session_destroy();
-        session_start();
-        $message = "Votre session a expiré. Veuillez vous reconnecter.";
-        $message_type = 'error';
-    } else {
-        header('Location: dashboard.php');
-        exit;
-    }
+// Si déjà connecté, rediriger vers le dashboard
+if (SessionManager::isLoggedIn()) {
+    header('Location: ../EPI/dashboard.php');
+    exit;
 }
 
-$message = $message ?? '';
-$message_type = $message_type ?? '';
+$message = '';
+$message_type = '';
 
-// Rate limiting basé sur l'IP
-function checkRateLimit(): bool {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    $key = 'membre_login_attempts_' . md5($ip);
-
-    if (!isset($_SESSION[$key])) {
-        $_SESSION[$key] = ['count' => 0, 'first_attempt' => time()];
-    }
-
-    $data = &$_SESSION[$key];
-
-    // Réinitialiser après la période de lockout
-    if ((time() - $data['first_attempt']) > MEMBRE_LOCKOUT_DURATION) {
-        $data = ['count' => 0, 'first_attempt' => time()];
-    }
-
-    if ($data['count'] >= MEMBRE_MAX_LOGIN_ATTEMPTS) {
-        return false; // Bloqué
-    }
-
-    $data['count']++;
-    return true;
+// Récupérer les messages de session (après logout ou expiration)
+if (isset($_SESSION['error_message'])) {
+    $message = $_SESSION['error_message'];
+    $message_type = 'error';
+    unset($_SESSION['error_message']);
 }
 
-// Traitement de la connexion
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_protect();
-
-    $email = sanitize_email($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-
-    if (empty($email) || empty($password)) {
-        $message = "Veuillez remplir tous les champs";
-        $message_type = 'error';
-    } elseif (!checkRateLimit()) {
-        $message = "Trop de tentatives. Réessayez dans 15 minutes.";
-        $message_type = 'error';
-    } else {
-        // Récupérer l'utilisateur
-        $stmt = $pdo->prepare("SELECT ID, user_nicename, user_email, user_pass, user_role
-                               FROM EPI_user
-                               WHERE user_email = ?
-                               LIMIT 1");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
-
-        if ($user && password_verify($password, $user['user_pass'])) {
-            // Régénérer l'ID de session (protection session fixation)
-            session_regenerate_id(true);
-
-            // Connexion réussie
-            $_SESSION['user_id'] = $user['ID'];
-            $_SESSION['user_name'] = $user['user_nicename'];
-            $_SESSION['user_email'] = $user['user_email'];
-            $_SESSION['user_role'] = $user['user_role'];
-            $_SESSION['logged_in'] = true;
-            $_SESSION['membre_login_time'] = time();
-            $_SESSION['membre_last_activity'] = time();
-
-            // Réinitialiser le compteur de tentatives
-            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-            unset($_SESSION['membre_login_attempts_' . md5($ip)]);
-
-            header('Location: dashboard.php');
-            exit;
-        } else {
-            $message = "Email ou mot de passe incorrect";
-            $message_type = 'error';
-        }
-    }
+if (isset($_SESSION['success_message'])) {
+    $message = $_SESSION['success_message'];
+    $message_type = 'success';
+    unset($_SESSION['success_message']);
 }
 
 // Message après réinitialisation réussie
 if (isset($_GET['message']) && $_GET['message'] === 'password_changed') {
     $message = "Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter.";
     $message_type = 'success';
+}
+
+// Traitement du formulaire de connexion
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_protect();
+    
+    $email = sanitize_email($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    
+    // Validation basique
+    if (empty($email) || empty($password)) {
+        $message = "Veuillez remplir tous les champs";
+        $message_type = 'error';
+    }
+    // Vérifier le rate limiting
+    elseif (RateLimiter::isLocked('login')) {
+        $message = RateLimiter::getErrorMessage('login');
+        $message_type = 'error';
+    }
+    else {
+        try {
+            // Récupérer l'utilisateur
+            $stmt = $pdo->prepare("
+                SELECT ID, user_nicename, user_email, user_pass, user_fonction
+                FROM EPI_user
+                WHERE user_email = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Vérifier le mot de passe
+            if ($user && PasswordManager::verify($password, $user['user_pass'])) {
+                // ✅ CONNEXION RÉUSSIE
+                
+                // Migration automatique si nécessaire (phpass → bcrypt)
+                if (PasswordManager::needsRehash($user['user_pass'])) {
+                    PasswordManager::migratePassword($pdo, $user['ID'], $password);
+                }
+                
+                // Créer la session
+                SessionManager::login($user);
+                
+                // Réinitialiser le rate limiter
+                RateLimiter::reset('login');
+                
+                // Rediriger vers le dashboard
+                header('Location: ../EPI/dashboard.php');
+                exit;
+                
+            } else {
+                // ❌ ÉCHEC DE CONNEXION
+                RateLimiter::record('login', false);
+                
+                $attempts_left = RateLimiter::getRemainingAttempts('login');
+                
+                if ($attempts_left > 0) {
+                    $message = "Email ou mot de passe incorrect. ";
+                    if ($attempts_left <= 2) {
+                        $message .= "Attention : il vous reste $attempts_left tentative(s).";
+                    }
+                } else {
+                    $message = RateLimiter::getErrorMessage('login');
+                }
+                
+                $message_type = 'error';
+            }
+            
+        } catch (PDOException $e) {
+            error_log("Erreur login: " . $e->getMessage());
+            $message = "Une erreur est survenue. Veuillez réessayer.";
+            $message_type = 'error';
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -141,57 +131,94 @@ if (isset($_GET['message']) && $_GET['message'] === 'password_changed') {
     <title>Connexion - Espace Membre</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
+        :root {
+            --primary-color: #667eea;
+            --primary-dark: #5568d3;
+            --secondary-color: #764ba2;
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+            --border-color: #e2e8f0;
+            --error-color: #e53e3e;
+            --success-color: #38a169;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 1rem;
         }
+        
         .login-container {
             max-width: 450px;
             width: 100%;
         }
+        
         .login-card {
             background: white;
             padding: 2.5rem;
             border-radius: var(--radius-lg);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: var(--shadow-lg);
         }
+        
         .login-header {
             text-align: center;
             margin-bottom: 2rem;
         }
+        
         .login-header h1 {
             margin: 0 0 0.5rem 0;
             color: var(--text-primary);
+            font-size: 1.875rem;
         }
+        
         .login-header p {
             margin: 0;
             color: var(--text-secondary);
+            font-size: 0.95rem;
         }
+        
         .form-group {
             margin-bottom: 1.5rem;
         }
+        
         .form-label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
             color: var(--text-primary);
+            font-size: 0.95rem;
         }
+        
         .form-control {
             width: 100%;
             padding: 0.875rem;
             border: 2px solid var(--border-color);
             border-radius: var(--radius-md);
             font-size: 1rem;
-            transition: border-color 0.3s;
+            transition: all 0.3s ease;
+            font-family: inherit;
         }
+        
         .form-control:focus {
             outline: none;
             border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
+        
         .btn {
             width: 100%;
             padding: 1rem;
@@ -200,54 +227,97 @@ if (isset($_GET['message']) && $_GET['message'] === 'password_changed') {
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
         }
+        
         .btn-primary {
-            background: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
         }
-        .btn-primary:hover {
+        
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
         .alert {
             padding: 1rem;
             border-radius: var(--radius-md);
             margin-bottom: 1.5rem;
             text-align: center;
+            font-size: 0.95rem;
         }
+        
         .alert.success {
             background: #d4edda;
             color: #155724;
-            border-left: 4px solid #28a745;
+            border-left: 4px solid var(--success-color);
         }
+        
         .alert.error {
             background: #f8d7da;
             color: #721c24;
-            border-left: 4px solid #dc3545;
+            border-left: 4px solid var(--error-color);
         }
+        
         .forgot-password {
             text-align: center;
             margin-top: 1rem;
         }
+        
         .forgot-password a {
             color: var(--primary-color);
             text-decoration: none;
             font-size: 0.95rem;
+            transition: color 0.3s ease;
         }
+        
         .forgot-password a:hover {
+            color: var(--primary-dark);
             text-decoration: underline;
         }
+        
         .back-home {
             text-align: center;
             margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
         }
+        
         .back-home a {
             color: var(--text-secondary);
             text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
         }
+        
         .back-home a:hover {
             color: var(--text-primary);
+        }
+        
+        .security-info {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 2rem 1.5rem;
+            }
+            
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
@@ -260,13 +330,14 @@ if (isset($_GET['message']) && $_GET['message'] === 'password_changed') {
             </div>
             
             <?php if ($message): ?>
-                <div class="alert <?php echo $message_type; ?>">
+                <div class="alert <?php echo htmlspecialchars($message_type); ?>">
                     <?php echo htmlspecialchars($message); ?>
                 </div>
             <?php endif; ?>
             
             <form method="POST" autocomplete="on">
                 <?php echo csrf_field(); ?>
+                
                 <div class="form-group">
                     <label class="form-label">Adresse email</label>
                     <input type="email" 
@@ -288,13 +359,23 @@ if (isset($_GET['message']) && $_GET['message'] === 'password_changed') {
                            autocomplete="current-password">
                 </div>
                 
-                <button type="submit" class="btn btn-primary">
-                    ✓ Se connecter
+                <button type="submit" 
+                        class="btn btn-primary"
+                        <?php echo RateLimiter::isLocked('login') ? 'disabled' : ''; ?>>
+                    <?php if (RateLimiter::isLocked('login')): ?>
+                        ⏳ Veuillez patienter...
+                    <?php else: ?>
+                        ✓ Se connecter
+                    <?php endif; ?>
                 </button>
             </form>
             
             <div class="forgot-password">
                 <a href="forgot-password.php">Mot de passe oublié ?</a>
+            </div>
+            
+            <div class="security-info">
+                🔒 Connexion sécurisée · Vos données sont protégées
             </div>
             
             <div class="back-home">

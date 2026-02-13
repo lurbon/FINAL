@@ -417,7 +417,7 @@
                     </li>
                     <li><a href="nous-rejoindre.php">Nous rejoindre</a></li>
                     <li><a href="contact.php">Contact</a></li>
-                    <li><a href="EPI/login.php" class="membre-link">Membres</a></li>
+                    <li><a href="membre/login.php" class="membre-link">Membres</a></li>
                 </ul>
             </nav>
         </div>

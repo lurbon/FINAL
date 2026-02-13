@@ -6,9 +6,7 @@ RewriteEngine On
     Order Allow,Deny
     Deny from all
 </FilesMatch>
-<Files "config.php">
-    Require all denied
-</Files>
+
 # Bloquer l'accès au dossier .git
 RedirectMatch 404 /\.git
 
@@ -22,7 +20,20 @@ Options -Indexes
     RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2})
     RewriteRule .* index.php [F,L]
 </IfModule>
+# Configuration des sessions
+<IfModule mod_php7.c>
+    php_flag session.cookie_httponly On
+    php_flag session.cookie_secure On
+    php_value session.cookie_samesite Lax
+    php_flag session.use_strict_mode On
+</IfModule>
 
+<IfModule mod_php8.c>
+    php_flag session.cookie_httponly On
+    php_flag session.cookie_secure On
+    php_value session.cookie_samesite Lax
+    php_flag session.use_strict_mode On
+</IfModule>
 # Compression gzip
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript

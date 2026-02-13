@@ -4,7 +4,7 @@ require_once('config.php');
 require_once('auth.php');
 require_once(__DIR__ . '/../includes/sanitize.php');
 require_once(__DIR__ . '/../includes/database.php');
-verifierRole(['admin', 'chauffeur', 'gestionnaire']);
+verifierfonction(['admin', 'chauffeur', 'gestionnaire']);
 
 // Connexion PDO centralisée
 $conn = getDBConnection();

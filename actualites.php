@@ -2,7 +2,7 @@
 require_once 'includes/config.php';
 
 // Creer la table cinema si elle n'existe pas
-$pdo->exec("CREATE TABLE IF NOT EXISTS EPI_cinema (
+$pdo->exec("CREATE TABLE IF NOT EXISTS cinema (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,

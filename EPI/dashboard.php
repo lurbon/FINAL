@@ -81,7 +81,7 @@ if (!$utilisateur || !$token) {
             font-size: 13px;
         }
 
-        .user-role {
+        .user-fonction {
             padding: 2px 8px;
             background: #d4e3ed;
             border-radius: 8px;
@@ -473,7 +473,7 @@ if (!$utilisateur || !$token) {
             <div class="left-section">
                 <div class="user-info">
                     <span>👤 <span class="user-name" id="userName"></span></span>
-                    <span class="user-role" id="userRole"></span>
+                    <span class="user-fonction" id="userfonction"></span>
                 </div>
             </div>
             
@@ -524,7 +524,7 @@ if (!$utilisateur || !$token) {
                         </div>
                     </div>
                 </div>
-                <a href="../membre/login.php" class="btn-change-password">🔑 Changer mot de passe</a>
+                <a href="../membre/change-password.php" class="btn-change-password">🔑 Changer mot de passe</a>
                 <button class="btn-logout" id="logout">🚪 Déconnexion</button>
             </div>
         </div>
@@ -623,8 +623,8 @@ if (!$utilisateur || !$token) {
         const user = getUser();
         if (user) {
             document.getElementById('userName').textContent = user.name || 'Utilisateur';
-            const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
-            document.getElementById('userRole').textContent = roles[0] || 'User';
+            const fonctions = Array.isArray(user.fonctions) ? user.fonctions : [user.fonctions];
+            document.getElementById('userfonction').textContent = fonctions[0] || 'User';
         }
 
         // Fonction pour créer une carte menu
@@ -659,16 +659,16 @@ if (!$utilisateur || !$token) {
         // Chargement du dashboard
         function loadDashboard() {
             const user = getUser();
-            if (!user || !user.roles) {
+            if (!user || !user.fonctions) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
-            const isAdmin = roles.includes('admin');
-            const isGestionnaire = roles.includes('gestionnaire');
-            const isBenevole = roles.includes('benevole');
-            const isChauffeur = roles.includes('chauffeur');
+            const fonctions = Array.isArray(user.fonctions) ? user.fonctions : [user.fonctions];
+            const isAdmin = fonctions.includes('admin');
+            const isGestionnaire = fonctions.includes('gestionnaire');
+            const isBenevole = fonctions.includes('benevole');
+            const isChauffeur = fonctions.includes('chauffeur');
             
             // Extraire le prénom de l'utilisateur (premier mot du nom)
             const userFirstName = user.name ? user.name.split(' ')[0] : 'Utilisateur';
@@ -849,7 +849,7 @@ if (!$utilisateur || !$token) {
         // Déconnexion
         document.getElementById('logout').addEventListener('click', () => {
             sessionStorage.clear();
-            window.location.href = 'logout.php';
+            window.location.href = '../membre/logout.php';
         });
 
         // Lancement

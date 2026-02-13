@@ -3,14 +3,39 @@ require_once('config.php');
 require_once('auth.php');
 require_once(__DIR__ . '/../includes/sanitize.php');
 require_once(__DIR__ . '/../includes/database.php');
-verifierRole(['admin', 'benevole', 'chauffeur', 'gestionnaire']);
+verifierfonction(['admin', 'benevole', 'chauffeur', 'gestionnaire']);
 
 // Connexion PDO centralisée
 $conn = getDBConnection();
 
 // Trouver les id_benevole correspondant à l'email de l'utilisateur connecté
 // (un couple peut partager le même email → plusieurs id_benevole)
-$userEmail = $_SESSION['user']['email'] ?? '';
+
+// ✅ CORRECTION : Récupération de l'email compatible avec SessionManager
+$userEmail = '';
+
+// Tester les différentes structures de session possibles
+if (isset($_SESSION['user_email'])) {
+    $userEmail = $_SESSION['user_email'];
+} elseif (isset($_SESSION['user']['user_email'])) {
+    $userEmail = $_SESSION['user']['user_email'];
+} elseif (isset($_SESSION['user']['email'])) {
+    $userEmail = $_SESSION['user']['email'];
+}
+
+// Si toujours vide, essayer via l'ID utilisateur
+if (empty($userEmail) && !empty($_SESSION['user_id'])) {
+    $stmtUser = $conn->prepare("SELECT user_email FROM EPI_user WHERE ID = :user_id LIMIT 1");
+    $stmtUser->execute([':user_id' => $_SESSION['user_id']]);
+    $userRow = $stmtUser->fetch(PDO::FETCH_ASSOC);
+    if ($userRow) {
+        $userEmail = $userRow['user_email'];
+    }
+}
+
+// Debug log (à garder pour surveillance)
+error_log("vos_missions.php - Email utilisateur : " . ($userEmail ?: 'VIDE'));
+
 $idsBenevoleConnecte = [];
 $nomsBenevole = [];
 
@@ -18,10 +43,16 @@ if (!empty($userEmail)) {
     $stmtBen = $conn->prepare("SELECT id_benevole, nom FROM EPI_benevole WHERE courriel = :email");
     $stmtBen->execute([':email' => $userEmail]);
     $benevoleRows = $stmtBen->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Debug log
+    error_log("vos_missions.php - Bénévoles trouvés : " . count($benevoleRows));
+    
     foreach ($benevoleRows as $row) {
         $idsBenevoleConnecte[] = $row['id_benevole'];
         $nomsBenevole[] = $row['nom'];
     }
+} else {
+    error_log("vos_missions.php - ERREUR : Email utilisateur vide");
 }
 
 // Fonction pour obtenir le nom du mois en français
@@ -609,8 +640,50 @@ $total_minutes = $total_duree_minutes % 60;
         </div>
 
         <?php if(empty($missions)): ?>
+            <!-- DEBUG INFO -->
+            <?php if (!empty($userEmail)): ?>
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin-bottom: 30px; border-radius: 8px;">
+                    <h3 style="color: #856404; margin-bottom: 15px;">🔍 Information de diagnostic</h3>
+                    <div style="color: #856404;">
+                        <p><strong>Email utilisateur :</strong> <?php echo htmlspecialchars($userEmail); ?></p>
+                        <p><strong>Nombre de bénévoles trouvés :</strong> <?php echo count($idsBenevoleConnecte); ?></p>
+                        <?php if (!empty($nomsBenevole)): ?>
+                            <p><strong>Noms :</strong> <?php echo implode(', ', array_map('htmlspecialchars', $nomsBenevole)); ?></p>
+                            <p><strong>IDs bénévole :</strong> <?php echo implode(', ', $idsBenevoleConnecte); ?></p>
+                        <?php endif; ?>
+                        <p><strong>Nombre de missions :</strong> <?php echo count($missions); ?></p>
+                        
+                        <?php if (empty($idsBenevoleConnecte)): ?>
+                            <hr style="margin: 15px 0; border-color: #ffc107;">
+                            <p style="color: #dc3545;"><strong>⚠️ Problème détecté :</strong></p>
+                            <p>Aucun bénévole n'a été trouvé avec l'email <code><?php echo htmlspecialchars($userEmail); ?></code> dans la table <code>EPI_benevole</code>.</p>
+                            <p><strong>Solutions possibles :</strong></p>
+                            <ul style="margin-left: 20px;">
+                                <li>Vérifiez que l'email dans votre compte utilisateur correspond exactement à celui enregistré comme bénévole</li>
+                                <li>Contactez l'administrateur pour lier votre compte utilisateur à votre profil bénévole</li>
+                                <li>L'email doit être identique dans les tables <code>EPI_user</code> et <code>EPI_benevole</code></li>
+                            </ul>
+                        <?php elseif (count($missions) === 0): ?>
+                            <hr style="margin: 15px 0; border-color: #ffc107;">
+                            <p style="color: #17a2b8;"><strong>ℹ️ Information :</strong></p>
+                            <p>Votre profil bénévole a été trouvé mais aucune mission n'est enregistrée pour le moment.</p>
+                            <p>Les missions vous seront attribuées par l'administrateur.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 20px; margin-bottom: 30px; border-radius: 8px;">
+                    <h3 style="color: #721c24; margin-bottom: 15px;">❌ Erreur de session</h3>
+                    <div style="color: #721c24;">
+                        <p><strong>L'email utilisateur n'a pas pu être récupéré depuis la session.</strong></p>
+                        <p>Veuillez <a href="logout.php" style="color: #0056b3; text-decoration: underline;">vous déconnecter</a> et vous reconnecter.</p>
+                        <p style="margin-top: 15px; font-size: 0.9em;">Si le problème persiste, contactez l'administrateur.</p>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
             <div class="no-results">
-                Aucune mission trouv&eacute;e.
+                Aucune mission trouvée.
             </div>
         <?php else: ?>
             <div class="tabs-container">

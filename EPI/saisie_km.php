@@ -1,11 +1,25 @@
 <?php
 // Charger la configuration
 require_once('config.php');
-require_once('auth.php');
+require_once(__DIR__ . '/../includes/auth/SessionManager.php');
 require_once(__DIR__ . '/../includes/sanitize.php');
 require_once(__DIR__ . '/../includes/database.php');
 require_once(__DIR__ . '/../includes/csrf.php');
-verifierRole(['admin','gestionnaire','chauffeur','benevole']);
+
+// Initialiser la session
+SessionManager::init();
+SessionManager::requireAuth();
+
+// Récupérer les données utilisateur
+$userData = SessionManager::getUserData();
+$userEmail = $userData['email'] ?? '';
+$userfonction = $userData['fonction'] ?? 'membre';
+
+// Vérifier les rôles autorisés
+$fonctionsAutorises = ['admin', 'gestionnaire', 'chauffeur', 'benevole'];
+if (!in_array($userfonction, $fonctionsAutorises)) {
+    die('Accès refusé. Cette page est réservée aux administrateurs, gestionnaires, chauffeurs et bénévoles.');
+}
 
 // Connexion PDO centralisée
 $conn = getDBConnection();
@@ -15,20 +29,15 @@ $messageType = "";
 
 // Déterminer si l'utilisateur doit voir uniquement ses missions (chauffeurs et bénévoles)
 // Seuls admin et gestionnaire voient toutes les missions
-$isBenevole = !hasRole('admin') && !hasRole('gestionnaire');
+$isBenevole = !in_array($userfonction, ['admin', 'gestionnaire']);
 $idsBenevoleConnecte = [];
 
 if ($isBenevole) {
     // Trouver les id_benevole correspondant à l'email de l'utilisateur connecté
-    // (un couple peut partager le même email → plusieurs id_benevole)
-    $userEmail = $_SESSION['user']['email'] ?? '';
     if (!empty($userEmail)) {
         $stmtBen = $conn->prepare("SELECT id_benevole FROM EPI_benevole WHERE courriel = :email");
         $stmtBen->execute([':email' => $userEmail]);
         $idsBenevoleConnecte = $stmtBen->fetchAll(PDO::FETCH_COLUMN);
-        
-        // Debug : décommenter pour voir les IDs trouvés dans les logs PHP
-        // error_log("Bénévole connecté - Email: $userEmail - IDs trouvés: " . implode(', ', $idsBenevoleConnecte));
         
         // Si aucun ID trouvé, afficher un message à l'utilisateur
         if (empty($idsBenevoleConnecte) && empty($message)) {
@@ -69,8 +78,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id_mission'])) {
             }
         }
 
-        // Récupérer l'email de l'utilisateur connecté
-        $userEmail = $_SESSION['user']['email'] ?? '';
+        // L'email de l'utilisateur est déjà défini en haut du fichier dans $userEmail
 
         $sql = "UPDATE EPI_mission SET
                 km_saisi = :km_saisi,
