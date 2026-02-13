@@ -243,7 +243,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper .form-control {
+            padding-right: 3rem;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 5px;
+            line-height: 1;
+        }
+
+        .toggle-password:hover {
+            color: var(--secondary-color);
+        }
+
         .btn {
             width: 100%;
             padding: 1rem;
@@ -357,24 +383,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
                     
                     <div class="form-group">
                         <label class="form-label">Nouveau mot de passe *</label>
-                        <input type="password" 
-                               name="new_password" 
-                               class="form-control" 
-                               required 
-                               minlength="<?php echo PasswordManager::MIN_LENGTH; ?>"
-                               autocomplete="new-password"
-                               placeholder="Minimum <?php echo PasswordManager::MIN_LENGTH; ?> caractères">
+                        <div class="password-wrapper">
+                            <input type="password"
+                                   id="new_password"
+                                   name="new_password"
+                                   class="form-control"
+                                   required
+                                   minlength="<?php echo PasswordManager::MIN_LENGTH; ?>"
+                                   autocomplete="new-password"
+                                   placeholder="Minimum <?php echo PasswordManager::MIN_LENGTH; ?> caractères">
+                            <button type="button" class="toggle-password" onclick="togglePassword('new_password')" title="Afficher/Masquer">👁️</button>
+                        </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="form-label">Confirmer le mot de passe *</label>
-                        <input type="password" 
-                               name="confirm_password" 
-                               class="form-control" 
-                               required 
-                               minlength="<?php echo PasswordManager::MIN_LENGTH; ?>"
-                               autocomplete="new-password"
-                               placeholder="Retapez le mot de passe">
+                        <div class="password-wrapper">
+                            <input type="password"
+                                   id="confirm_password"
+                                   name="confirm_password"
+                                   class="form-control"
+                                   required
+                                   minlength="<?php echo PasswordManager::MIN_LENGTH; ?>"
+                                   autocomplete="new-password"
+                                   placeholder="Retapez le mot de passe">
+                            <button type="button" class="toggle-password" onclick="togglePassword('confirm_password')" title="Afficher/Masquer">👁️</button>
+                        </div>
                     </div>
                     
                     <button type="submit" class="btn btn-primary">
@@ -394,6 +428,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
     </div>
     
     <script>
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = field.nextElementSibling;
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = '🙈';
+            } else {
+                field.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+
         // Validation côté client
         const form = document.querySelector('form');
         if (form) {

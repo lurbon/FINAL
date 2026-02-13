@@ -634,6 +634,29 @@ $admin_email = $_SESSION['admin_email'] ?? '';
             gap: 1rem;
             justify-content: flex-end;
         }
+
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper .form-control {
+            padding-right: 3rem;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 5px;
+            line-height: 1;
+        }
+        .toggle-password:hover {
+            color: var(--secondary-color, #764ba2);
+        }
     </style>
 </head>
 <body>
@@ -733,10 +756,13 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                                 <label class="form-label">
                                     Mot de passe <?= !$edit_member ? '*' : '(laisser vide pour ne pas changer)' ?>
                                 </label>
-                                <input type="password" name="user_password" class="form-control" 
-                                       placeholder="Minimum 8 caractères" 
-                                       autocomplete="new-password"
-                                       <?= !$edit_member ? 'required' : '' ?>>
+                                <div class="password-wrapper">
+                                    <input type="password" id="user_password" name="user_password" class="form-control"
+                                           placeholder="Minimum 8 caractères"
+                                           autocomplete="new-password"
+                                           <?= !$edit_member ? 'required' : '' ?>>
+                                    <button type="button" class="toggle-password" onclick="togglePassword('user_password')" title="Afficher/Masquer">👁️</button>
+                                </div>
                                 <?php if ($edit_member): ?>
                                 <small style="color: var(--text-secondary); font-size: 0.875rem;">
                                     Laissez vide pour conserver le mot de passe actuel
@@ -748,10 +774,13 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                                 <label class="form-label">
                                     Confirmer <?= !$edit_member ? '*' : '' ?>
                                 </label>
-                                <input type="password" name="user_password_confirm" class="form-control" 
-                                       placeholder="Retapez le mot de passe"
-                                       autocomplete="new-password"
-                                       <?= !$edit_member ? 'required' : '' ?>>
+                                <div class="password-wrapper">
+                                    <input type="password" id="user_password_confirm" name="user_password_confirm" class="form-control"
+                                           placeholder="Retapez le mot de passe"
+                                           autocomplete="new-password"
+                                           <?= !$edit_member ? 'required' : '' ?>>
+                                    <button type="button" class="toggle-password" onclick="togglePassword('user_password_confirm')" title="Afficher/Masquer">👁️</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -903,12 +932,18 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                 
                 <div class="form-group">
                     <label class="form-label">Nouveau mot de passe</label>
-                    <input type="password" name="new_password" class="form-control" required>
+                    <div class="password-wrapper">
+                        <input type="password" id="modal_new_password" name="new_password" class="form-control" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('modal_new_password')" title="Afficher/Masquer">👁️</button>
+                    </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">Confirmer</label>
-                    <input type="password" name="confirm_password" class="form-control" required>
+                    <div class="password-wrapper">
+                        <input type="password" id="modal_confirm_password" name="confirm_password" class="form-control" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('modal_confirm_password')" title="Afficher/Masquer">👁️</button>
+                    </div>
                 </div>
                 
                 <div class="modal-footer">
@@ -924,6 +959,18 @@ $admin_email = $_SESSION['admin_email'] ?? '';
     </div>
     
     <script>
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = field.nextElementSibling;
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = '🙈';
+            } else {
+                field.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+
         function openChangePasswordModal(userId, userName) {
             document.getElementById('modalUserId').value = userId;
             document.getElementById('modalUserName').textContent = 'Utilisateur : ' + userName;
