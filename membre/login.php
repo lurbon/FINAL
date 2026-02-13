@@ -361,22 +361,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
             
-            <form method="POST" autocomplete="on">
+            <form method="POST" action="login.php" autocomplete="on">
                 <?php echo csrf_field(); ?>
-                
+
                 <div class="form-group">
-                    <label class="form-label">Adresse email</label>
-                    <input type="email" 
-                           name="email" 
-                           class="form-control" 
+                    <label class="form-label" for="email">Adresse email</label>
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           class="form-control"
                            placeholder="votre@email.fr"
-                           required 
-                           autocomplete="email"
+                           required
+                           autocomplete="username"
                            value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
                 </div>
-                
+
                 <div class="form-group">
-                    <label class="form-label">Mot de passe</label>
+                    <label class="form-label" for="password">Mot de passe</label>
                     <div class="password-wrapper">
                         <input type="password"
                                id="password"
