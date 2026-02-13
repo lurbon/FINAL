@@ -29,7 +29,6 @@ if (SessionManager::isLoggedIn()) {
 
 $message = '';
 $message_type = '';
-$redirect_url = '';
 
 // Récupérer les messages de session (après logout ou expiration)
 if (isset($_SESSION['error_message'])) {
@@ -94,9 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Réinitialiser le rate limiter
                 RateLimiter::reset('login');
 
-                // Redirection via HTML/JS pour que le navigateur
-                // propose d'enregistrer le mot de passe
-                $redirect_url = '../EPI/dashboard.php';
+                // Rediriger vers le dashboard
+                header('Location: ../EPI/dashboard.php');
+                exit;
                 
             } else {
                 // ❌ ÉCHEC DE CONNEXION
@@ -349,24 +348,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
-    <?php if ($redirect_url): ?>
-    <!--
-      Page intermédiaire après login réussi.
-      Le navigateur voit la réponse HTML 200 avec les champs du formulaire,
-      ce qui lui permet de proposer l'enregistrement du mot de passe
-      AVANT la redirection vers le dashboard.
-    -->
-    <div class="login-container">
-        <div class="login-card" style="text-align:center;">
-            <p>Connexion réussie, redirection...</p>
-        </div>
-    </div>
-    <script>
-        setTimeout(function() {
-            window.location.replace(<?php echo json_encode($redirect_url); ?>);
-        }, 100);
-    </script>
-    <?php else: ?>
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
@@ -380,7 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="login.php" autocomplete="on">
+            <form id="loginForm" method="POST" action="login.php" autocomplete="on">
                 <?php echo csrf_field(); ?>
 
                 <div class="form-group">
@@ -433,7 +414,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
-    <?php endif; ?>
 
     <script>
     function togglePassword(fieldId) {
@@ -446,6 +426,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             field.type = 'password';
             button.textContent = '👁️';
         }
+    }
+
+    // Credential Management API : demander explicitement au navigateur
+    // de sauvegarder les identifiants AVANT que le formulaire soit envoyé
+    var loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            if (window.PasswordCredential) {
+                e.preventDefault();
+                var form = this;
+                var cred = new PasswordCredential(form);
+                navigator.credentials.store(cred).then(function() {
+                    form.submit();
+                }).catch(function() {
+                    form.submit();
+                });
+            }
+        });
     }
     </script>
 </body>
