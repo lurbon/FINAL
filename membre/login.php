@@ -428,20 +428,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Credential Management API : demander explicitement au navigateur
-    // de sauvegarder les identifiants AVANT que le formulaire soit envoyé
+    // Credential Management API : signaler au navigateur qu'il doit
+    // proposer la sauvegarde des identifiants.
+    // Important : ne PAS faire preventDefault() pour conserver le "user gesture"
+    // qui est nécessaire à Chrome pour déclencher le prompt de sauvegarde.
     var loginForm = document.getElementById('loginForm');
     if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
+        loginForm.addEventListener('submit', function() {
             if (window.PasswordCredential) {
-                e.preventDefault();
-                var form = this;
-                var cred = new PasswordCredential(form);
-                navigator.credentials.store(cred).then(function() {
-                    form.submit();
-                }).catch(function() {
-                    form.submit();
-                });
+                try {
+                    var cred = new PasswordCredential({
+                        id: document.getElementById('email').value,
+                        password: document.getElementById('password').value
+                    });
+                    navigator.credentials.store(cred);
+                } catch (e) {}
             }
         });
     }
