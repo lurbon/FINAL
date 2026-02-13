@@ -134,15 +134,9 @@ try {
     $stmt = $pdo->query("
         SELECT user_nicename,  user_phone, user_secteur,user_role 
         FROM EPI_user 
-        WHERE ( user_role = 'Présidente' or  user_role LIKE 'Responsable du secteur%') 
+        WHERE ( user_role LIKE 'Présidente%' or  user_role LIKE 'Responsable du secteur%') 
         AND (user_phone  LIKE '0%')
-        ORDER BY 
-            CASE user_role 
-                WHEN 'Présidente' THEN 1 
-                ELSE 2 
-                 
-            END,
-            user_secteur ASC
+        ORDER BY  user_role , user_secteur ASC
     ");
     $contacts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {

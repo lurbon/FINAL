@@ -129,53 +129,38 @@ function enregistrerHistoriqueEnvoi($conn, $emailEmetteur, $missionsIds, $destin
 
 // Récupérer l'email de l'utilisateur connecté (émetteur)
 $currentUserEmail = '';
-$currentUserName = '';
 
-// ⭐ CORRECTION : Utiliser la fonction getUtilisateurConnecte() définie dans auth.php
-// Cette fonction récupère les données depuis SessionManager
-$utilisateur = getUtilisateurConnecte();
-
-if ($utilisateur) {
-    // Récupérer l'email directement depuis la fonction
-    if (!empty($utilisateur['email'])) {
-        $currentUserEmail = $utilisateur['email'];
-        error_log("✅ Email émetteur récupéré via getUtilisateurConnecte(): " . $currentUserEmail);
+// Le système d'auth personnalisé stocke les données dans $_SESSION['user']
+if (isset($_SESSION['user'])) {
+    // Essayer différents champs possibles pour l'email
+    if (isset($_SESSION['user']['email'])) {
+        $currentUserEmail = $_SESSION['user']['email'];
+    } elseif (isset($_SESSION['user']['courriel'])) {
+        $currentUserEmail = $_SESSION['user']['courriel'];
+    } elseif (isset($_SESSION['user']['mail'])) {
+        $currentUserEmail = $_SESSION['user']['mail'];
     }
     
-    // Récupérer le nom d'utilisateur pour affichage
-    if (!empty($utilisateur['username'])) {
-        $currentUserName = $utilisateur['username'];
-    } elseif (!empty($utilisateur['name'])) {
-        $currentUserName = $utilisateur['name'];
-    }
-}
-
-// Si l'email n'a pas été trouvé via getUtilisateurConnecte(), chercher dans la base
-if (empty($currentUserEmail) && !empty($currentUserName)) {
-    try {
-        error_log("🔍 Email non trouvé via SessionManager, recherche dans EPI_benevole pour: " . $currentUserName);
-        
-        // Chercher dans la table EPI_benevole
-        $sqlUser = "SELECT courriel, nom FROM EPI_benevole WHERE LOWER(nom) = LOWER(:username) LIMIT 1";
-        $stmtUser = $conn->prepare($sqlUser);
-        $stmtUser->execute(['username' => $currentUserName]);
-        $userData = $stmtUser->fetch(PDO::FETCH_ASSOC);
-        
-        if ($userData && !empty($userData['courriel'])) {
-            $currentUserEmail = $userData['courriel'];
-            error_log("✅ Email trouvé dans EPI_benevole: " . $currentUserEmail);
-        } else {
-            error_log("⚠️ Aucun email trouvé dans EPI_benevole pour: " . $currentUserName);
+    // Si toujours vide, essayer de récupérer depuis la base avec le username
+    if (empty($currentUserEmail) && isset($_SESSION['user']['username'])) {
+        try {
+            $sqlUser = "SELECT courriel FROM EPI_benevole WHERE LOWER(nom) = LOWER(:username) LIMIT 1";
+            $stmtUser = $conn->prepare($sqlUser);
+            $stmtUser->execute(['username' => $_SESSION['user']['username']]);
+            $userData = $stmtUser->fetch(PDO::FETCH_ASSOC);
+            if ($userData && !empty($userData['courriel'])) {
+                $currentUserEmail = $userData['courriel'];
+            }
+        } catch(PDOException $e) {
+            error_log("Erreur récupération email: " . $e->getMessage());
         }
-    } catch(PDOException $e) {
-        error_log("❌ Erreur récupération email depuis base: " . $e->getMessage());
     }
 }
 
-// Avertissement si l'email est toujours vide
+// Si toujours vide, utiliser un email par défaut (À CONFIGURER)
 if (empty($currentUserEmail)) {
-    error_log("❌ CRITIQUE : Email émetteur VIDE après toutes les tentatives ! Utilisateur: " . ($currentUserName ?: 'INCONNU'));
-    error_log("Données utilisateur: " . print_r($utilisateur ?? [], true));
+    // OPTION : Mettre un email fixe ici si besoin
+    // $currentUserEmail = 'coordination@entraide-iroise.fr';
 }
 
 // Traitement de l'envoi d'email
@@ -1554,23 +1539,10 @@ $totalMissions = array_sum(array_map('count', $missionsBySecteur));
             </div>
             
             <?php if (!empty($currentUserEmail)): ?>
-            <!-- Email de l'émetteur détecté -->
-            <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 12px 20px; border-radius: 8px; margin-bottom: 15px; color: #1b5e20; font-size: 13px;">
-                <strong style="color: #2e7d32;">✉️ Email émetteur :</strong>
-                Les emails seront envoyés depuis : 
-                <strong><?php echo htmlspecialchars($currentUserEmail); ?></strong>
-            </div>
             <div style="background: #e7f3ff; border-left: 4px solid #2196F3; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; color: #0d47a1; font-size: 13px;">
                 <strong style="color: #1976d2;">💡 Information :</strong>
                 Vous recevrez une copie de chaque confirmation d'inscription à : 
                 <strong><?php echo htmlspecialchars($currentUserEmail); ?></strong>
-            </div>
-            <?php else: ?>
-            <!-- AVERTISSEMENT : Email émetteur non détecté -->
-            <div style="background: #fff3cd; border-left: 4px solid #ff9800; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; color: #bf360c; font-size: 13px;">
-                <strong style="color: #e65100;">⚠️ ATTENTION :</strong>
-                L'email émetteur n'a pas pu être détecté. Les envois ne seront pas enregistrés correctement dans l'historique.
-                <br><strong>Connecté en tant que :</strong> <?php echo htmlspecialchars($currentUserName ?: 'Utilisateur inconnu'); ?>
             </div>
             <?php endif; ?>
             

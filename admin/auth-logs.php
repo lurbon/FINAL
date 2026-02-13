@@ -144,29 +144,86 @@ $suspicious_ips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
+        }
+
+        .back-link {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 24px;
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            border: 3px solid #dc3545;
+        }
+
+        .back-link:hover {
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.7);
+            border-color: #c82333;
+        }
+
+        .back-link:active {
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        /* Tooltip au survol */
+        .back-link::before {
+            content: 'Retour au tableau de bord';
+            position: absolute;
+            left: 70px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover::before {
+            opacity: 1;
         }
         
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
-        
-        h1 {
-            color: #2c3e50;
+
+        .main-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .main-header h1 {
+            font-size: 32px;
             margin-bottom: 10px;
         }
-        
-        .breadcrumb {
-            color: #7f8c8d;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-        
-        .breadcrumb a {
-            color: #3498db;
-            text-decoration: none;
+
+        .main-header .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
         }
         
         .stats-grid {
@@ -179,8 +236,15 @@ $suspicious_ips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .stat-card {
             background: white;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
         }
         
         .stat-card h3 {
@@ -201,15 +265,18 @@ $suspicious_ips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .stat-warning { color: #f39c12; }
         
         .card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             margin-bottom: 30px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
         }
         
         .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             padding: 20px;
-            border-bottom: 1px solid #ecf0f1;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -217,11 +284,13 @@ $suspicious_ips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         .card-header h2 {
             font-size: 20px;
-            color: #2c3e50;
+            color: white;
+            margin: 0;
         }
         
         .card-body {
-            padding: 20px;
+            padding: 25px;
+            background: white;
         }
         
         .filters {
@@ -258,8 +327,13 @@ $suspicious_ips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         
         .btn-primary {
-            background: #3498db;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
         
         .btn-primary:hover {
@@ -381,14 +455,15 @@ $suspicious_ips = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </style>
 </head>
 <body>
+    <a href="../EPI/admin.php" class="back-link" title="Retour au tableau de bord">🏠</a>
+
     <div class="container">
-        <div class="breadcrumb">
-            <a href="../EPI/dashboard.php">← Retour au dashboard</a>
+        <div class="main-header">
+            <h1>📊 Logs d'Authentification</h1>
+            <p class="subtitle">Surveillance de l'activité et de la sécurité</p>
         </div>
         
-        <h1>📊 Logs d'Authentification</h1>
-        <p style="color: #7f8c8d; margin-bottom: 30px;">Surveillance de l'activité et de la sécurité</p>
-        
+        <div style="padding: 30px;">
         <!-- Statistiques -->
         <div class="stats-grid">
             <?php
@@ -653,6 +728,7 @@ $suspicious_ips = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <?php endif; ?>
             </div>
         </div>
-    </div>
+        </div> <!-- Fin du padding -->
+    </div> <!-- Fin du container -->
 </body>
 </html>
