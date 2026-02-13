@@ -179,6 +179,7 @@ if (isset($_POST['save_member'])) {
     $ID = $_POST['ID'] ?? null;
     $name = sanitize_text($_POST['user_nicename'] ?? '');
     $role = sanitize_text($_POST['user_role'] ?? '');
+    $fonction = sanitize_text($_POST['user_fonction'] ?? '');
     $bio = sanitize_text($_POST['user_bio'] ?? '');
     $email = sanitize_email($_POST['user_email'] ?? '');
     $phone = sanitize_text($_POST['user_phone'] ?? '');
@@ -237,24 +238,24 @@ if (isset($_POST['save_member'])) {
                     $hash = PasswordManager::hash($password);
                     $stmt = $pdo->prepare("
                         UPDATE EPI_user 
-                        SET user_nicename = ?, user_role = ?, user_photo = ?, 
+                        SET user_nicename = ?, user_role = ?, user_fonction = ?, user_photo = ?, 
                             user_bio = ?, user_email = ?, user_phone = ?, 
                             user_rang = ?, user_pass = ?, password_changed_at = NOW() 
                         WHERE ID = ?
                     ");
-                    $stmt->execute([$name, $role, $photo, $bio, $email, $phone, $display_order, $hash, $ID]);
+                    $stmt->execute([$name, $role, $fonction, $photo, $bio, $email, $phone, $display_order, $hash, $ID]);
                     
                     PasswordManager::addToHistory($pdo, $ID, $hash);
                 } else {
                     // Sans changement de mot de passe
                     $stmt = $pdo->prepare("
                         UPDATE EPI_user 
-                        SET user_nicename = ?, user_role = ?, user_photo = ?, 
+                        SET user_nicename = ?, user_role = ?, user_fonction = ?, user_photo = ?, 
                             user_bio = ?, user_email = ?, user_phone = ?, 
                             user_rang = ? 
                         WHERE ID = ?
                     ");
-                    $stmt->execute([$name, $role, $photo, $bio, $email, $phone, $display_order, $ID]);
+                    $stmt->execute([$name, $role, $fonction, $photo, $bio, $email, $phone, $display_order, $ID]);
                 }
                 $message = "Membre modifié avec succès";
                 
@@ -267,11 +268,11 @@ if (isset($_POST['save_member'])) {
                     $hash = PasswordManager::hash($password);
                     $stmt = $pdo->prepare("
                         INSERT INTO EPI_user 
-                        (user_nicename, user_role, user_photo, user_bio, user_email, 
+                        (user_nicename, user_role, user_fonction, user_photo, user_bio, user_email, 
                          user_phone, user_rang, user_pass, password_changed_at) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                     ");
-                    $stmt->execute([$name, $role, $photo, $bio, $email, $phone, $display_order, $hash]);
+                    $stmt->execute([$name, $role, $fonction, $photo, $bio, $email, $phone, $display_order, $hash]);
                     
                     $new_id = $pdo->lastInsertId();
                     PasswordManager::addToHistory($pdo, $new_id, $hash);
@@ -683,11 +684,18 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Fonction *</label>
+                            <label class="form-label">Rôle *</label>
                             <input type="text" name="user_role" class="form-control" 
                                    value="<?= htmlspecialchars($edit_member['user_role'] ?? '') ?>" 
                                    placeholder="Ex: Président(e), Bénévole, Admin" required>
                         </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Fonction (description du poste)</label>
+                        <input type="text" name="user_fonction" class="form-control" 
+                               value="<?= htmlspecialchars($edit_member['user_fonction'] ?? '') ?>" 
+                               placeholder="Ex: Responsable du transport, Coordinateur bénévoles">
                     </div>
                     
                     <div class="form-group">
@@ -790,6 +798,7 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                             <tr>
                                 <th>Photo</th>
                                 <th>Nom</th>
+                                <th>Rôle</th>
                                 <th>Fonction</th>
                                 <th>Contact</th>
                                 <th>Ordre</th>
@@ -802,15 +811,15 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                                 <tr>
                                     <td>
                                         <?php if ($member['user_photo']): ?>
-                                            <img src="../uploads/members/<?= htmlspecialchars($member['user_photo']) ?>">
+                                            <img src="../uploads/members/<?= htmlspecialchars($member['user_photo']) ?>" style="width: 50px; height: 50px;">
                                         <?php else: ?>
-                                            <div style="width: 60px; height: 60px; background: var(--primary-color); 
+                                            <div style="width: 50px; height: 50px; background: var(--primary-color); 
                                                         border-radius: 50%; display: flex; align-items: center; 
-                                                        justify-content: center; color: white; font-size: 1.5rem;">👤</div>
+                                                        justify-content: center; color: white; font-size: 1.2rem;">👤</div>
                                         <?php endif; ?>
                                     </td>
-                                    <td><strong><?= htmlspecialchars($member['user_nicename']) ?></strong></td>
-                                    <td>
+                                    <td style="font-size: 0.875rem;"><strong><?= htmlspecialchars($member['user_nicename']) ?></strong></td>
+                                    <td style="font-size: 0.8rem;">
                                         <?php
                                         $badge_class = 'badge-member';
                                         $role_lower = strtolower($member['user_role']);
@@ -818,11 +827,14 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                                         elseif (strpos($role_lower, 'benevole') !== false || strpos($role_lower, 'bénévole') !== false) $badge_class = 'badge-benevole';
                                         elseif (strpos($role_lower, 'chauffeur') !== false) $badge_class = 'badge-chauffeur';
                                         ?>
-                                        <span class="badge <?= $badge_class ?>">
+                                        <span class="badge <?= $badge_class ?>" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
                                             <?= htmlspecialchars($member['user_role']) ?>
                                         </span>
                                     </td>
-                                    <td>
+                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">
+                                        <?= htmlspecialchars($member['user_fonction'] ?? '-') ?>
+                                    </td>
+                                    <td style="font-size: 0.8rem;">
                                         <?php if ($member['user_email']): ?>
                                             <div><?= htmlspecialchars($member['user_email']) ?></div>
                                         <?php endif; ?>
@@ -830,16 +842,16 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                                             <div><?= htmlspecialchars($member['user_phone']) ?></div>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= $member['user_rang'] ?></td>
+                                    <td style="font-size: 0.875rem;"><?= $member['user_rang'] ?></td>
                                     <td>
-                                        <div style="font-size: 0.875rem;">
+                                        <div style="font-size: 0.75rem;">
                                             <strong><?= $member['login_count'] ?></strong> connexion(s)
                                             <?php if ($member['last_login']): ?>
-                                                <br><small style="color: var(--text-secondary);">
+                                                <br><small style="color: var(--text-secondary); font-size: 0.7rem;">
                                                     <?= date('d/m/Y H:i', strtotime($member['last_login'])) ?>
                                                 </small>
                                             <?php else: ?>
-                                                <br><small style="color: #95a5a6;">Jamais connecté</small>
+                                                <br><small style="color: #95a5a6; font-size: 0.7rem;">Jamais connecté</small>
                                             <?php endif; ?>
                                         </div>
                                     </td>

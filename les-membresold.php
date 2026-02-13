@@ -39,7 +39,7 @@ include 'includes/header.php';
                 <p style="color: var(--text-secondary); margin-top: 1rem;">Revenez bientôt pour découvrir notre équipe !</p>
             </div>
         <?php else: ?>
-            <div style="max-width: 500px; margin: 0 auto;">
+            <div style="max-width: 1000px; margin: 0 auto;">
                 <?php foreach ($members as $index => $member): ?>
                     <?php 
                     $isEven = $index % 2 === 0;
@@ -52,9 +52,9 @@ include 'includes/header.php';
                     $color = $colors[$index % count($colors)];
                     ?>
                     
-                    <div style="margin-bottom: 1.5rem;">
+                    <div style="margin-bottom: 3rem;">
                         <div style="display: grid; grid-template-columns: <?php echo $isEven ? '1fr 2fr' : '2fr 1fr'; ?>; 
-                                    gap: 1.5rem; align-items: center; background: white; padding: 1rem; 
+                                    gap: 3rem; align-items: center; background: white; padding: 2rem; 
                                     border-radius: var(--radius-xl); box-shadow: 0 4px 20px rgba(0,0,0,0.15);
                                     border: 2px solid #e0e0e0;">
                             
@@ -68,23 +68,23 @@ include 'includes/header.php';
                                     <div style="width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, <?php echo $color; ?>, <?php echo $color; ?>dd); 
                                                 border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; 
                                                 box-shadow: var(--shadow-md);">
-                                        <span style="font-size: 3rem; color: white; opacity: 0.9;">👤</span>
+                                        <span style="font-size: 5rem; color: white; opacity: 0.9;">👤</span>
                                     </div>
                                 <?php endif; ?>
                             </div>
                             
                             <div style="order: <?php echo $isEven ? '2' : '1'; ?>;">
                                 <div style="color: #8BC34A; font-weight: 700; 
-                                            font-size: 1.1rem; margin-bottom: 0.5rem;">
+                                            font-size: 1.5rem; margin-bottom: 1rem;">
                                     <?php echo htmlspecialchars($member['role']); ?>
                                 </div>
                                 
-                                <h2 style="color: var(--text-primary); margin-bottom: 0.5rem; font-size: 1.3rem;">
+                                <h2 style="color: var(--text-primary); margin-bottom: 1rem; font-size: 2rem;">
                                     <?php echo htmlspecialchars($member['name']); ?>
                                 </h2>
                                 
                                 <?php if ($member['bio']): ?>
-                                    <p style="font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                                    <p style="font-size: 1.125rem; line-height: 1.8; color: var(--text-secondary); margin-bottom: 1.5rem;">
                                         <?php echo nl2br(htmlspecialchars($member['bio'])); ?>
                                     </p>
                                 <?php endif; ?>

@@ -1,4 +1,9 @@
 <?php
+// Démarrer la session si ce n'est pas déjà fait
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once('config.php');
 require_once('auth.php');
 require_once(__DIR__ . '/../includes/sanitize.php');
@@ -6,8 +11,34 @@ require_once(__DIR__ . '/../includes/database.php');
 require_once(__DIR__ . '/../includes/csrf.php');
 verifierfonction(['admin', 'gestionnaire']);
 
+// Fonction pour nettoyer les backslashes
+function cleanBackslashes($value) {
+    if (is_null($value) || $value === '') {
+        return $value;
+    }
+    $cleaned = $value;
+    while (strpos($cleaned, '\\\\') !== false) {
+        $cleaned = str_replace('\\\\', '\\', $cleaned);
+    }
+    $cleaned = stripslashes($cleaned);
+    return $cleaned;
+}
+
+// Fonction pour formater une date en français
+if (!function_exists('formatDateFr')) {
+    function formatDateFr($date) {
+        if (empty($date)) return '';
+        $timestamp = strtotime($date);
+        if ($timestamp === false) return $date;
+        return date('d/m/Y', $timestamp);
+    }
+}
+
 // Connexion PDO centralisée
 $conn = getDBConnection();
+
+// DEBUG SESSION - Décommentez cette ligne pour voir le contenu de la session
+// echo '<pre>Contenu de $_SESSION :'; print_r($_SESSION); echo '</pre>'; exit();
 
 $message = "";
 $messageType = "";
@@ -29,10 +60,14 @@ try {
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'duplicate') {
     csrf_protect();
     try {
-        $id_mission = $_POST['id_mission'];
-        $nb_semaines = (int)$_POST['nb_semaines'];
+        $id_mission = sanitize_int($_POST['id_mission']);
+        $nb_semaines = sanitize_int($_POST['nb_semaines']);
         
-        if ($nb_semaines < 1 || $nb_semaines > 52) {
+        if ($id_mission === false) {
+            throw new Exception("ID de mission invalide");
+        }
+        
+        if ($nb_semaines === false || $nb_semaines < 1 || $nb_semaines > 52) {
             throw new Exception("Le nombre de semaines doit être entre 1 et 52");
         }
         
@@ -49,6 +84,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         $jourSemaine = $dateOriginale->format('N'); // 1 = lundi, 7 = dimanche
         $duplicationsReussies = 0;
         $erreurs = [];
+        
+        // Récupérer l'email de l'utilisateur connecté UNE SEULE FOIS
+        $email_createur = null;
+        if (isset($_SESSION['user']['email'])) {
+            $email_createur = $_SESSION['user']['email'];
+        } elseif (isset($_SESSION['email'])) {
+            $email_createur = $_SESSION['email'];
+        } elseif (isset($_SESSION['admin_email'])) {
+            $email_createur = $_SESSION['admin_email'];
+        } elseif (isset($_SESSION['user_email'])) {
+            $email_createur = $_SESSION['user_email'];
+        } else {
+            // Si aucun email n'est trouvé, utiliser une valeur par défaut
+            $email_createur = 'systeme@entraide-iroise.fr';
+            error_log("ATTENTION: Email créateur non trouvé en session, utilisation de l'email par défaut");
+        }
         
         // Créer les duplications pour chaque semaine
         for ($i = 1; $i <= $nb_semaines; $i++) {
@@ -73,7 +124,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                 $erreurs[] = "Semaine +{$i} ({$nouvelleDate}) : mission déjà existante";
                 continue;
             }
-            
+
             // Insérer la nouvelle mission
             $sql = "INSERT INTO EPI_mission (
                 date_mission, heure_rdv, heure_depart_mission, heure_retour_mission, duree,
@@ -90,6 +141,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
             )";
             
             $stmt = $conn->prepare($sql);
+
             $stmt->execute([
                 ':date_mission' => $nouvelleDate,
                 ':heure_rdv' => $missionOriginale['heure_rdv'],
@@ -115,7 +167,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                 ':commentaires' => $missionOriginale['commentaires'],
                 ':km_saisi' => $missionOriginale['km_saisi'],
                 ':km_calcule' => $missionOriginale['km_calcule'],
-                ':email_createur' => isset($_SESSION['user']['email']) ? $_SESSION['user']['email'] : null
+                ':email_createur' => $email_createur
             ]);
             
             $duplicationsReussies++;
@@ -129,8 +181,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         header("Location: " . $_SERVER['PHP_SELF'] . "?success=" . urlencode($successMsg));
         exit();
         
+    } catch(PDOException $e) {
+        error_log("Erreur dupliquer_mission.php (PDO): " . $e->getMessage());
+        error_log("SQL State: " . $e->getCode());
+        $_SESSION['error_message'] = "Erreur SQL: " . $e->getMessage();
+        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
+        exit();
     } catch(Exception $e) {
         error_log("Erreur dupliquer_mission.php: " . $e->getMessage());
+        $_SESSION['error_message'] = "Erreur: " . $e->getMessage();
         header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
         exit();
     }
@@ -156,10 +215,15 @@ if (isset($_GET['id'])) {
 
 // Messages de succès/erreur
 if (isset($_GET['success'])) {
-    $message = "Duplication effectuee avec succes.";
+    $message = urldecode($_GET['success']);
     $messageType = "success";
 } elseif (isset($_GET['error'])) {
-    $message = "Une erreur est survenue lors de la duplication.";
+    if (isset($_SESSION['error_message'])) {
+        $message = "❌ " . htmlspecialchars($_SESSION['error_message']);
+        unset($_SESSION['error_message']);
+    } else {
+        $message = "❌ Une erreur est survenue lors de la duplication.";
+    }
     $messageType = "error";
 }
 

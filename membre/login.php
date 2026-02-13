@@ -218,7 +218,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper .form-control {
+            padding-right: 3rem;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 5px;
+            line-height: 1;
+        }
+
+        .toggle-password:hover {
+            color: var(--secondary-color);
+        }
+
         .btn {
             width: 100%;
             padding: 1rem;
@@ -351,12 +377,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 <div class="form-group">
                     <label class="form-label">Mot de passe</label>
-                    <input type="password" 
-                           name="password" 
-                           class="form-control" 
-                           placeholder="Votre mot de passe"
-                           required 
-                           autocomplete="current-password">
+                    <div class="password-wrapper">
+                        <input type="password"
+                               id="password"
+                               name="password"
+                               class="form-control"
+                               placeholder="Votre mot de passe"
+                               required
+                               autocomplete="current-password">
+                        <button type="button" class="toggle-password" onclick="togglePassword('password')" title="Afficher/Masquer le mot de passe">👁️</button>
+                    </div>
                 </div>
                 
                 <button type="submit" 
@@ -383,5 +413,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
+
+    <script>
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const button = field.nextElementSibling;
+        if (field.type === 'password') {
+            field.type = 'text';
+            button.textContent = '🙈';
+        } else {
+            field.type = 'password';
+            button.textContent = '👁️';
+        }
+    }
+    </script>
 </body>
 </html>

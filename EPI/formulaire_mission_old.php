@@ -1,9 +1,4 @@
 <?php
-// Démarrer la session si ce n'est pas déjà fait
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Charger la configuration
 require_once('config.php');
 require_once('auth.php');
@@ -14,9 +9,6 @@ verifierfonction(['admin', 'gestionnaire']);
 
 $message = "";
 $messageType = "";
-
-// DEBUG SESSION - Décommentez ces lignes pour voir le contenu de la session
-// echo '<pre>Contenu de $_SESSION :'; print_r($_SESSION); echo '</pre>'; exit();
 
 // Connexion PDO centralisée
 $conn = getDBConnection();
@@ -57,34 +49,6 @@ try {
 // Traitement du formulaire
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     csrf_protect();
-    
-    // Validation des champs requis
-    $erreurs = [];
-    
-    if (empty($_POST['date_mission'])) {
-        $erreurs[] = "La date de mission est requise";
-    } elseif (sanitize_date($_POST['date_mission']) === false) {
-        $erreurs[] = "La date de mission est invalide (format attendu : AAAA-MM-JJ)";
-    }
-    
-    if (empty($_POST['heure_rdv'])) {
-        $erreurs[] = "L'heure de rendez-vous est requise";
-    } elseif (sanitize_time($_POST['heure_rdv']) === false) {
-        $erreurs[] = "L'heure de rendez-vous est invalide (format attendu : HH:MM)";
-    }
-    
-    if (empty($_POST['id_aide'])) {
-        $erreurs[] = "Un aidé doit être sélectionné";
-    } elseif (sanitize_int($_POST['id_aide']) === false) {
-        $erreurs[] = "L'identifiant de l'aidé est invalide";
-    }
-    
-    if (!empty($erreurs)) {
-        $_SESSION['error_message'] = implode(', ', $erreurs);
-        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
-        exit();
-    }
-    
     try {
         // Fonction pour nettoyer les backslashes multiples qui peuvent s'accumuler
         function cleanBackslashes($value) {
@@ -102,6 +66,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             return $cleaned;
         }
         
+        // DEBUG: Afficher les données POST pour vérifier
+        // Décommentez ces lignes pour déboguer
+        // echo '<pre>'; print_r($_POST); echo '</pre>'; exit();
+        
         $sql = "INSERT INTO EPI_mission (date_mission, heure_rdv, 
                 id_benevole, benevole, adresse_benevole, cp_benevole, commune_benevole, secteur_benevole, 
                 id_aide, aide, adresse_aide, cp_aide, commune_aide, secteur_aide, 
@@ -115,33 +83,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         $stmt = $conn->prepare($sql);
         
-        // Récupérer l'email de l'utilisateur connecté (essayer plusieurs emplacements possibles)
-        $email_createur = null;
-        if (isset($_SESSION['user']['email'])) {
-            $email_createur = $_SESSION['user']['email'];
-        } elseif (isset($_SESSION['email'])) {
-            $email_createur = $_SESSION['email'];
-        } elseif (isset($_SESSION['admin_email'])) {
-            $email_createur = $_SESSION['admin_email'];
-        } elseif (isset($_SESSION['user_email'])) {
-            $email_createur = $_SESSION['user_email'];
-        } else {
-            // Si aucun email n'est trouvé, utiliser une valeur par défaut
-            $email_createur = 'systeme@entraide-iroise.fr';
-            error_log("ATTENTION: Email créateur non trouvé en session, utilisation de l'email par défaut");
-        }
-        
         // Préparer les données en nettoyant les backslashes
         $data = [
-            ':date_mission' => !empty($_POST['date_mission']) ? (sanitize_date($_POST['date_mission']) ?: null) : null,
-            ':heure_rdv' => !empty($_POST['heure_rdv']) ? (sanitize_time($_POST['heure_rdv']) ?: null) : null,
-            ':id_benevole' => !empty($_POST['id_benevole']) ? (sanitize_int($_POST['id_benevole']) ?: null) : null,
+            ':date_mission' => !empty($_POST['date_mission']) ? sanitize_date($_POST['date_mission']) : null,
+            ':heure_rdv' => !empty($_POST['heure_rdv']) ? sanitize_time($_POST['heure_rdv']) : null,
+            ':id_benevole' => !empty($_POST['id_benevole']) ? sanitize_int($_POST['id_benevole']) : null,
             ':benevole' => !empty($_POST['benevole']) ? cleanBackslashes($_POST['benevole']) : null,
             ':adresse_benevole' => !empty($_POST['adresse_benevole']) ? cleanBackslashes($_POST['adresse_benevole']) : null,
             ':cp_benevole' => !empty($_POST['cp_benevole']) ? cleanBackslashes($_POST['cp_benevole']) : null,
             ':commune_benevole' => !empty($_POST['commune_benevole']) ? cleanBackslashes($_POST['commune_benevole']) : null,
             ':secteur_benevole' => !empty($_POST['secteur_benevole']) ? cleanBackslashes($_POST['secteur_benevole']) : null,
-            ':id_aide' => !empty($_POST['id_aide']) ? (sanitize_int($_POST['id_aide']) ?: null) : null,
+            ':id_aide' => !empty($_POST['id_aide']) ? sanitize_int($_POST['id_aide']) : null,
             ':aide' => !empty($_POST['aide']) ? cleanBackslashes($_POST['aide']) : null,
             ':adresse_aide' => !empty($_POST['adresse_aide']) ? cleanBackslashes($_POST['adresse_aide']) : null,
             ':cp_aide' => !empty($_POST['cp_aide']) ? cleanBackslashes($_POST['cp_aide']) : null,
@@ -152,15 +104,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             ':commune_destination' => !empty($_POST['commune_destination']) ? cleanBackslashes($_POST['commune_destination']) : null,
             ':nature_intervention' => !empty($_POST['nature_intervention']) ? cleanBackslashes($_POST['nature_intervention']) : null,
             ':commentaires' => !empty($_POST['commentaires']) ? cleanBackslashes($_POST['commentaires']) : null,
-            ':email_createur' => cleanBackslashes($email_createur)
+            ':email_createur' => isset($_SESSION['user']['email']) ? cleanBackslashes($_SESSION['user']['email']) : null
         ];
         
-        // DEBUG: Décommentez ces lignes pour déboguer
-        // Mode debug : afficher les données avant insertion
-        // $_SESSION['debug_data'] = $data;
-        // echo '<pre>Données POST:'; print_r($_POST); echo '</pre>';
-        // echo '<pre>Données à insérer:'; print_r($data); echo '</pre>'; 
-        // exit();
+        // DEBUG: Afficher les données préparées
+        // Décommentez ces lignes pour déboguer
+        // echo '<pre>Données envoyées à la BDD:'; print_r($data); echo '</pre>'; exit();
         
         $stmt->execute($data);
         
@@ -169,14 +118,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
     } catch(PDOException $e) {
         error_log("Erreur insertion mission: " . $e->getMessage());
-        error_log("SQL State: " . $e->getCode());
-        // Stocker l'erreur en session pour l'afficher
-        $_SESSION['error_message'] = "Erreur SQL: " . $e->getMessage();
-        header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
-        exit();
-    } catch(Exception $e) {
-        error_log("Erreur générale: " . $e->getMessage());
-        $_SESSION['error_message'] = "Erreur: " . $e->getMessage();
         header("Location: " . $_SERVER['PHP_SELF'] . "?error=1");
         exit();
     }
@@ -187,12 +128,7 @@ if (isset($_GET['success'])) {
     $message = "✅ Mission créée avec succès !";
     $messageType = "success";
 } elseif (isset($_GET['error'])) {
-    if (isset($_SESSION['error_message'])) {
-        $message = "❌ " . htmlspecialchars($_SESSION['error_message']);
-        unset($_SESSION['error_message']);
-    } else {
-        $message = "❌ Erreur lors de l'enregistrement. Veuillez réessayer.";
-    }
+    $message = "Erreur lors de l'enregistrement. Veuillez réessayer.";
     $messageType = "error";
 }
 

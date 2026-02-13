@@ -115,6 +115,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .login-logo p {
             color: var(--text-secondary);
         }
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper .form-control {
+            padding-right: 3rem;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 5px;
+            line-height: 1;
+        }
+        .toggle-password:hover {
+            color: var(--secondary-color, #764ba2);
+        }
     </style>
 </head>
 <body>
@@ -150,11 +172,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="form-group">
                 <label for="password" class="form-label">Mot de passe</label>
-                <input type="password"
-                       id="password"
-                       name="password"
-                       class="form-control"
-                       required>
+                <div class="password-wrapper">
+                    <input type="password"
+                           id="password"
+                           name="password"
+                           class="form-control"
+                           required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('password')" title="Afficher/Masquer le mot de passe">👁️</button>
+                </div>
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.125rem; margin-top: 1rem;">
@@ -168,5 +193,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </a>
         </div>
     </div>
+
+    <script>
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const button = field.nextElementSibling;
+        if (field.type === 'password') {
+            field.type = 'text';
+            button.textContent = '🙈';
+        } else {
+            field.type = 'password';
+            button.textContent = '👁️';
+        }
+    }
+    </script>
 </body>
 </html>
