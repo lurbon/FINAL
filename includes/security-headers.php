@@ -24,6 +24,8 @@ header("X-XSS-Protection: 1; mode=block");
 header("Referrer-Policy: strict-origin-when-cross-origin");
 
 // Content Security Policy (adaptée aux pages publiques avec Google Fonts)
+// NOTE : 'unsafe-inline' pour script-src est nécessaire tant que les scripts
+// inline n'ont pas été migrés vers des fichiers externes avec nonce CSP.
 header(
     "Content-Security-Policy: " .
     "default-src 'self'; " .
@@ -34,7 +36,9 @@ header(
     "connect-src 'self'; " .
     "frame-ancestors 'self'; " .
     "base-uri 'self'; " .
-    "form-action 'self'"
+    "form-action 'self'; " .
+    "object-src 'none'; " .
+    "upgrade-insecure-requests"
 );
 
 // Permissions-Policy - Désactive les API sensibles

@@ -824,7 +824,7 @@ function formaterDuree($duree) {
             foreach ($statistiques as $nom => $data) {
                 if ($data['total_missions'] > 0) {
                     $chartData[] = [
-                        'label' => addslashes($nom),
+                        'label' => $nom,
                         'missions' => intval($data['total_missions'])
                     ];
                 }
@@ -975,7 +975,7 @@ function formaterDuree($duree) {
 
     function exporterExcel() {
         const annee = <?php echo $annee; ?>;
-        const secteur = '<?php echo addslashes($secteurFiltre); ?>';
+        const secteur = <?php echo json_encode($secteurFiltre, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         // Exporter les statistiques en CSV
         window.location.href = 'export_stats_secteurs_csv.php?annee=' + annee + '&secteur=' + encodeURIComponent(secteur);
     }

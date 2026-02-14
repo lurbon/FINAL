@@ -780,16 +780,16 @@ try {
                                                 class="btn-calculate"
                                                 onclick="calculateDistanceGoogleMaps(
                                                     <?php echo $mission['id_mission']; ?>,
-                                                    '<?php echo addslashes($mission['aide']); ?>',
-                                                    '<?php echo addslashes($mission['adresse_benevole']); ?>',
-                                                    '<?php echo addslashes($mission['cp_benevole']); ?>',
-                                                    '<?php echo addslashes($mission['commune_benevole']); ?>',
-                                                    '<?php echo addslashes($mission['adresse_aide']); ?>',
-                                                    '<?php echo addslashes($mission['cp_aide']); ?>',
-                                                    '<?php echo addslashes($mission['commune_aide']); ?>',
-                                                    '<?php echo addslashes($mission['adresse_destination']); ?>',
-                                                    '<?php echo addslashes($mission['cp_destination']); ?>',
-                                                    '<?php echo addslashes($mission['commune_destination']); ?>'
+                                                    <?php echo json_encode($mission['aide']); ?>,
+                                                    <?php echo json_encode($mission['adresse_benevole']); ?>,
+                                                    <?php echo json_encode($mission['cp_benevole']); ?>,
+                                                    <?php echo json_encode($mission['commune_benevole']); ?>,
+                                                    <?php echo json_encode($mission['adresse_aide']); ?>,
+                                                    <?php echo json_encode($mission['cp_aide']); ?>,
+                                                    <?php echo json_encode($mission['commune_aide']); ?>,
+                                                    <?php echo json_encode($mission['adresse_destination']); ?>,
+                                                    <?php echo json_encode($mission['cp_destination']); ?>,
+                                                    <?php echo json_encode($mission['commune_destination']); ?>
                                                 )">
                                             🗺️ Calculer KM
                                         </button>

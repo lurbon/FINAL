@@ -665,7 +665,7 @@ if (isset($_GET['success'])) {
         // Données des aidés pour l'autocomplétion
         const aidesData = [
             <?php foreach($aides as $a): ?>
-            {id: <?php echo $a['id_aide']; ?>, nom: "<?php echo addslashes($a['nom']); ?>"},
+            {id: <?php echo (int)$a['id_aide']; ?>, nom: <?php echo json_encode($a['nom'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>},
             <?php endforeach; ?>
         ];
 

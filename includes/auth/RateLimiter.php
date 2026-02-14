@@ -257,20 +257,15 @@ class RateLimiter {
      * @return string
      */
     private static function getClientIp(): string {
-        // Vérifier les headers de proxy
-        $ip_keys = [
-            'HTTP_CF_CONNECTING_IP',  // Cloudflare
-            'HTTP_X_FORWARDED_FOR',   // Proxies standards
-            'HTTP_X_REAL_IP',         // Nginx
-            'REMOTE_ADDR'             // IP directe
-        ];
-        
-        foreach ($ip_keys as $key) {
-            if (isset($_SERVER[$key]) && filter_var($_SERVER[$key], FILTER_VALIDATE_IP)) {
-                return $_SERVER[$key];
-            }
+        // SECURITE : Utiliser uniquement REMOTE_ADDR qui ne peut pas être falsifié.
+        // Les headers X-Forwarded-For / X-Real-IP sont contrôlés par le client
+        // et permettraient à un attaquant de contourner le rate limiting.
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
         }
-        
+
         return 'unknown';
     }
     

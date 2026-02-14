@@ -714,7 +714,7 @@ if (isset($_GET['success'])) {
         // Données des bénévoles pour l'autocomplétion
         const benevolesData = [
             <?php foreach($benevoles as $b): ?>
-            {id: <?php echo $b['id_benevole']; ?>, nom: "<?php echo addslashes($b['nom']); ?>"},
+            {id: <?php echo (int)$b['id_benevole']; ?>, nom: <?php echo json_encode($b['nom'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>},
             <?php endforeach; ?>
         ];
 

@@ -717,8 +717,8 @@ function formatDateFr($date) {
             <?php foreach($missions as $m): ?>
             {
                 id: <?php echo $m['id_mission']; ?>, 
-                text: "<?php echo formatDateFr($m['date_mission']) . ' ' . substr($m['heure_rdv'], 0, 5); ?> - <?php echo addslashes(stripslashes($m['aide'])); ?> (<?php echo addslashes(stripslashes($m['benevole'])); ?>)",
-                searchText: "<?php echo strtolower(addslashes(stripslashes($m['aide'] . ' ' . $m['benevole']))); ?>"
+                text: <?php echo json_encode(formatDateFr($m['date_mission']) . ' ' . substr($m['heure_rdv'], 0, 5) . ' - ' . stripslashes($m['aide']) . ' (' . stripslashes($m['benevole']) . ')', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+                searchText: <?php echo json_encode(strtolower(stripslashes($m['aide'] . ' ' . $m['benevole'])), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
             },
             <?php endforeach; ?>
         ];
