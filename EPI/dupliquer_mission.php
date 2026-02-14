@@ -24,13 +24,17 @@ function cleanBackslashes($value) {
     return $cleaned;
 }
 
-// Fonction pour formater une date en français
+// Fonction pour formater une date en français (avec jour de la semaine)
 if (!function_exists('formatDateFr')) {
     function formatDateFr($date) {
         if (empty($date)) return '';
-        $timestamp = strtotime($date);
-        if ($timestamp === false) return $date;
-        return date('d/m/Y', $timestamp);
+        try {
+            $jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+            $dt = new DateTime($date);
+            return $jours[$dt->format('w')] . ' ' . $dt->format('d/m/Y');
+        } catch (Exception $e) {
+            return $date;
+        }
     }
 }
 
@@ -227,13 +231,6 @@ if (isset($_GET['success'])) {
     $messageType = "error";
 }
 
-// Fonction pour formater la date en français
-function formatDateFr($date) {
-    if (!$date) return '';
-    $jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-    $dt = new DateTime($date);
-    return $jours[$dt->format('w')] . ' ' . $dt->format('d/m/Y');
-}
 ?>
 <!DOCTYPE html>
 <html lang="fr">

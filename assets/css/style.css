@@ -159,14 +159,6 @@ img {
     transition: all var(--transition-fast);
 }
 
-/* Commenté pour laisser le header.php gérer les styles
-.nav-menu a:hover,
-.nav-menu a.active {
-    background-color: var(--primary-color);
-    color: white;
-}
-*/
-
 .nav-menu .dropdown {
     position: relative;
 }
@@ -194,13 +186,6 @@ img {
     padding: var(--spacing-xs) var(--spacing-md);
     border-radius: 0;
 }
-
-/* Commenté pour laisser le header.php gérer les styles
-.dropdown-menu a:hover {
-    background-color: var(--background-light);
-    color: var(--primary-color);
-}
-*/
 
 .mobile-menu-toggle {
     display: none;
@@ -567,8 +552,9 @@ textarea.form-control {
 }
 
 /* ========================================
-   UTILITAIRES
-   ======================================== */
+   UTILITAIRES - Classes non utilisees actuellement,
+   conservees en commentaire au cas ou.
+   ========================================
 .text-center { text-align: center; }
 .text-left { text-align: left; }
 .text-right { text-align: right; }
@@ -587,3 +573,4 @@ textarea.form-control {
 .p-2 { padding: var(--spacing-sm); }
 .p-3 { padding: var(--spacing-md); }
 .p-4 { padding: var(--spacing-lg); }
+*/

@@ -143,85 +143,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ========================================
-    // Galerie d'images (lightbox simple)
-    // ========================================
-    const galleryImages = document.querySelectorAll('.gallery-image');
-    
-    if (galleryImages.length > 0) {
-        galleryImages.forEach(img => {
-            img.style.cursor = 'pointer';
-            img.addEventListener('click', function() {
-                openLightbox(this.src, this.alt);
-            });
-        });
-    }
-    
-    function openLightbox(src, alt) {
-        const lightbox = document.createElement('div');
-        lightbox.className = 'lightbox';
-        lightbox.innerHTML = `
-            <div class="lightbox-content">
-                <span class="lightbox-close">&times;</span>
-                <img src="${src}" alt="${alt}">
-            </div>
-        `;
-        
-        // Styles pour la lightbox
-        lightbox.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            animation: fadeIn 0.3s;
-        `;
-        
-        const content = lightbox.querySelector('.lightbox-content');
-        content.style.cssText = `
-            position: relative;
-            max-width: 90%;
-            max-height: 90%;
-        `;
-        
-        const img = lightbox.querySelector('img');
-        img.style.cssText = `
-            max-width: 100%;
-            max-height: 90vh;
-            border-radius: var(--radius-lg);
-        `;
-        
-        const closeBtn = lightbox.querySelector('.lightbox-close');
-        closeBtn.style.cssText = `
-            position: absolute;
-            top: -40px;
-            right: 0;
-            color: white;
-            font-size: 40px;
-            cursor: pointer;
-            transition: color 0.3s;
-        `;
-        
-        closeBtn.addEventListener('click', () => {
-            lightbox.style.animation = 'fadeOut 0.3s';
-            setTimeout(() => lightbox.remove(), 300);
-        });
-        
-        lightbox.addEventListener('click', (e) => {
-            if (e.target === lightbox) {
-                lightbox.style.animation = 'fadeOut 0.3s';
-                setTimeout(() => lightbox.remove(), 300);
-            }
-        });
-        
-        document.body.appendChild(lightbox);
-    }
-    
-    // ========================================
     // Bouton retour en haut
     // ========================================
     const backToTop = document.createElement('button');
@@ -264,48 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
             behavior: 'smooth'
         });
     });
-    
-    // ========================================
-    // Animation des compteurs (si présents)
-    // DÉSACTIVÉ - Géré individuellement par chaque page
-    // ========================================
-    /*
-    const counters = document.querySelectorAll('.counter');
-    
-    // Fonction pour formater les nombres avec des espaces comme séparateurs de milliers
-    function formatNumber(num) {
-        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    }
-    
-    if (counters.length > 0) {
-        const counterObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const counter = entry.target;
-                    const target = parseInt(counter.getAttribute('data-target'));
-                    const duration = 2000;
-                    const increment = target / (duration / 16);
-                    let current = 0;
-                    
-                    const updateCounter = () => {
-                        current += increment;
-                        if (current < target) {
-                            counter.textContent = formatNumber(Math.floor(current));
-                            requestAnimationFrame(updateCounter);
-                        } else {
-                            counter.textContent = formatNumber(target);
-                        }
-                    };
-                    
-                    updateCounter();
-                    counterObserver.unobserve(counter);
-                }
-            });
-        }, { threshold: 0.5 });
-        
-        counters.forEach(counter => counterObserver.observe(counter));
-    }
-    */
     
     // ========================================
     // Messages flash (auto-disparition)
