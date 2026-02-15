@@ -201,6 +201,10 @@ include 'includes/header.php';
             <?php endif; ?>
 
         <?php endif; ?>
+        
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="actualites.php" class="btn btn-primary">Retour aux actualités</a>
+        </div>
     </div>
 </section>
 

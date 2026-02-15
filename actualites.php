@@ -55,11 +55,6 @@ include 'includes/header.php';
     <section class="section">
         <div class="container">
             <div style="max-width: 800px; margin: 0 auto;">
-                <a href="actualites.php" style="display: inline-flex; align-items: center; gap: 0.5rem; 
-                                                 color: var(--primary-color); margin-bottom: 2rem;">
-                    ← Retour aux actualités
-                </a>
-                
                 <?php if ($single_news['image']): ?>
                     <img src="uploads/news/<?php echo htmlspecialchars($single_news['image']); ?>" 
                          alt="<?php echo htmlspecialchars($single_news['title']); ?>"
@@ -71,7 +66,7 @@ include 'includes/header.php';
                 </div>
                 
                 <div style="margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
-                    <a href="actualites.php" class="btn btn-primary">← Voir toutes les actualités</a>
+                    <a href="actualites.php" class="btn btn-primary">Retour aux actualités</a>
                 </div>
             </div>
         </div>
@@ -89,13 +84,17 @@ include 'includes/header.php';
     <section class="section">
         <div class="container">
             <!-- Prochaines sorties cinema -->
-            <?php if (!empty($upcoming_cinema)): ?>
-                <div style="margin-bottom: 3rem;">
-                    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.5rem;">
-                        <h2 style="margin: 0; color: var(--primary-color);">Minibus - Cinema - Saint-Renan</h2>
-                        <a href="cinema.php" style="font-size: 0.9rem; font-weight: 500;">Voir tout le programme &rarr;</a>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+            <?php if (!empty($upcoming_cinema)): ?>           
+
+
+		   <div style="margin-bottom: 3rem;">
+           <h2 style="margin: 0 0 1rem 0; color: var(--primary-color);">Minibus - Cinema - Saint-Renan</h2>
+
+           </div>				
+						
+						
+				    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; align-items: start;">
+
                         <?php foreach ($upcoming_cinema as $film):
                             $mois_court = ['jan','fev','mar','avr','mai','jun','jul','aou','sep','oct','nov','dec'];
                         ?>
@@ -109,7 +108,7 @@ include 'includes/header.php';
                                     <div style="position: absolute; top: 4px; left: 4px; background: var(--primary-color); color: white; border-radius: 4px; padding: 2px 6px; text-align: center; line-height: 1.1;">
                                         <span style="display: block; font-size: 1.1rem; font-weight: 700;"><?php echo date('d', strtotime($film['session_date'])); ?></span>
                                         <span style="display: block; font-size: 0.55rem; text-transform: uppercase;"><?php echo $mois_court[(int)date('m', strtotime($film['session_date'])) - 1]; ?></span>
-                                    </div>
+                                </div>
                                 </div>
                                 <div style="padding: 0.75rem; flex: 1;">
                                     <h4 style="margin: 0 0 0.25rem; font-size: 0.95rem; line-height: 1.3;"><?php echo htmlspecialchars($film['title']); ?></h4>
@@ -128,12 +127,17 @@ include 'includes/header.php';
                                         <?php endif; ?>
                                     </div>
                                 </div>
-                            </div>
+                            </div>   
+							
                         <?php endforeach; ?>
+						
                     </div>
-                </div>
+                    
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <a href="cinema.php" class="btn btn-primary">🎬 Voir tout le programme</a>
+                    </div>
 
-                <h2 style="margin-bottom: 1.5rem;">Actualites</h2>
+                <h2 style="margin: 2rem 0 1rem 0; color: var(--primary-color);">Actualites</h2>
             <?php endif; ?>
 
             <?php if (empty($all_news)): ?>

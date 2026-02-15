@@ -116,6 +116,6 @@ function getUserId() {
 SessionManager::updateActivity();
 
 // Headers de sécurité HTTP
-if (file_exists(__DIR__ . '/security-headers.php')) {
-    require_once __DIR__ . '/security-headers.php';
+if (file_exists(__DIR__ . '/../includes/security-headers.php')) {
+    require_once __DIR__ . '/../includes/security-headers.php';
 }
