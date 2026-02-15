@@ -1,4 +1,5 @@
 <?php
+
 require_once 'includes/config.php';
 
 $videos = $pdo->query("SELECT * FROM EPI_videos ORDER BY id desc")->fetchAll();

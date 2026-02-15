@@ -16,7 +16,7 @@ $userEmail = $userData['email'] ?? '';
 $userfonction = $userData['fonction'] ?? 'membre';
 
 // Vérifier les rôles autorisés
-$fonctionsAutorises = ['admin', 'gestionnaire', 'chauffeur', 'benevole'];
+$fonctionsAutorises = ['admin', 'responsable', 'chauffeur', 'benevole'];
 if (!in_array($userfonction, $fonctionsAutorises)) {
     die('Accès refusé. Cette page est réservée aux administrateurs, gestionnaires, chauffeurs et bénévoles.');
 }

@@ -666,7 +666,7 @@ if (!$utilisateur || !$token) {
 
             const fonctions = Array.isArray(user.fonctions) ? user.fonctions : [user.fonctions];
             const isAdmin = fonctions.includes('admin');
-            const isGestionnaire = fonctions.includes('gestionnaire');
+            const isresponsable = fonctions.includes('responsable');
             const isBenevole = fonctions.includes('benevole');
             const isChauffeur = fonctions.includes('chauffeur');
             
@@ -710,8 +710,8 @@ if (!$utilisateur || !$token) {
                 `;
             }
 
-            // INTERFACE GESTIONNAIRE (sans accès aux adhésions)
-            else if (isGestionnaire) {
+            // INTERFACE responsable (sans accès aux adhésions)
+            else if (isresponsable) {
                 document.getElementById('mainBlockTitle').textContent = 'Saisies et modifications';
                 document.getElementById('mainBlockGrid').innerHTML = `
                     ${createMenuCard('👤', 'Nouveau bénévole', null, 'formulaire_benevole.php')}
@@ -849,7 +849,15 @@ if (!$utilisateur || !$token) {
         // Déconnexion
         document.getElementById('logout').addEventListener('click', () => {
             sessionStorage.clear();
-            window.location.href = '../membre/logout.php';
+            // D'abord déconnecter, puis rediriger vers index.php à la racine
+            fetch('../membre/logout.php')
+                .then(() => {
+                    window.location.href = '../index.php';
+                })
+                .catch(() => {
+                    // En cas d'erreur, rediriger quand même
+                    window.location.href = '../index.php';
+                });
         });
 
         // Lancement

@@ -24,5 +24,5 @@ session_start();
 $_SESSION['success_message'] = "Déconnexion réussie. À bientôt " . htmlspecialchars($userName) . " !";
 
 // Rediriger vers login.php dans le même dossier (membre)
-header('Location: login.php');
+header('Location: ../index.php');
 exit();

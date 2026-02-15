@@ -60,7 +60,7 @@ include 'includes/header.php';
                     <li>Droit à l'effacement de vos données</li>
                     <li>Droit à la limitation du traitement</li>
                     <li>Droit à la portabilité de vos données</li>
-                    <li>Droit d'opposition au traitement</li>
+                    <li>Droit d'opposition au traitement</li> 
                 </ul>
             </div>
 
@@ -80,12 +80,15 @@ include 'includes/header.php';
                 </p>
                 <ul style="line-height: 1.8; color: var(--text-secondary); list-style: none; padding: 0; margin-top: 1rem;">
                     <li>📧 Email : <a href="mailto:contact@entraide-plus-iroise.fr" style="color: var(--primary-color);">contact@entraide-plus-iroise.fr</a></li>
-                    <li>📞 Téléphone : [Votre numéro]</li>
-                    <li>📍 Adresse : [Votre adresse]</li>
+                    <li>📞 Téléphone :   <a href="tel:0662487642" style="color: var(--primary-color);">
+                                07.66.63.44.58
+                            </a></li>
+                    <li>📍 Adresse : 1 Place de l'Église - 29840 Landunvez
+                         </p></li>
                 </ul>
             </div>
 
-            <div style="background: var(--background-light); padding: 1.5rem; border-radius: var(--radius-md); border-left: 4px solid var(--primary-color);">
+            <div style="background: var(--background-07.66.63.44.58light); padding: 1.5rem; border-radius: var(--radius-md); border-left: 4px solid var(--primary-color);">
                 <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">
                     <strong>Dernière mise à jour :</strong> <?php echo date('d/m/Y'); ?>
                 </p>

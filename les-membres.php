@@ -12,7 +12,7 @@ $stmt = $pdo->query("
         user_phone as phone,
         user_bio as bio
     FROM EPI_user 
-    WHERE user_rang IN (1,2,3,4)
+    WHERE user_rang IN (1,2,3,4,5)
     ORDER BY CAST(user_rang AS UNSIGNED) ASC, user_nicename ASC
 ");
 $members = $stmt->fetchAll();

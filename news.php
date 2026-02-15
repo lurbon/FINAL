@@ -8,7 +8,7 @@ $message_type = '';
 // Supprimer une actualité
 if (isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
-    $stmt = $pdo->prepare("SELECT image FROM news WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT image FROM EPI_news WHERE id = ?");
     $stmt->execute([$id]);
     $news = $stmt->fetch();
     
@@ -16,11 +16,11 @@ if (isset($_GET['delete'])) {
         @unlink('../uploads/news/' . $news['image']);
     }
     
-    $stmt = $pdo->prepare("DELETE FROM news WHERE id = ?");
+    $stmt = $pdo->prepare("DELETE FROM EPI_news WHERE id = ?");
     $stmt->execute([$id]);
     $message = "Actualité supprimée avec succès";
     $message_type = 'success';
-}
+}EPI_
 
 // Ajouter ou modifier une actualité
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -53,12 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if ($id) {
             // Mise à jour
-            $stmt = $pdo->prepare("UPDATE news SET title = ?, content = ?, image = ?, published = ? WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE EPI_news SET title = ?, content = ?, image = ?, published = ? WHERE id = ?");
             $stmt->execute([$title, $content, $image, $published, $id]);
             $message = "Actualité modifiée avec succès";
         } else {
             // Création
-            $stmt = $pdo->prepare("INSERT INTO news (title, content, image, published) VALUES (?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO EPI_news (title, content, image, published) VALUES (?, ?, ?, ?)");
             $stmt->execute([$title, $content, $image, $published]);
             $message = "Actualité créée avec succès";
         }
@@ -73,13 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Récupérer une actualité pour modification
 $edit_news = null;
 if (isset($_GET['edit'])) {
-    $stmt = $pdo->prepare("SELECT * FROM news WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM EPI_news WHERE id = ?");
     $stmt->execute([$_GET['edit']]);
     $edit_news = $stmt->fetch();
 }
 
 // Récupérer toutes les actualités
-$news_list = $pdo->query("SELECT * FROM news ORDER BY created_at DESC")->fetchAll();
+$news_list = $pdo->query("SELECT * FROM EPI_news ORDER BY created_at DESC")->fetchAll();
 
 $page_title = "Gestion des actualités";
 ?>

@@ -10,7 +10,7 @@ require_once('auth.php');
 require_once(__DIR__ . '/../includes/csrf.php');
 require_once(__DIR__ . '/../includes/sanitize.php');
 require_once(__DIR__ . '/../includes/database.php');
-verifierfonction(['admin', 'gestionnaire']);
+verifierfonction(['admin', 'responsable']);
 
 $message = "";
 $messageType = "";

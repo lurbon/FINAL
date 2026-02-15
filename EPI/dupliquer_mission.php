@@ -9,7 +9,7 @@ require_once('auth.php');
 require_once(__DIR__ . '/../includes/sanitize.php');
 require_once(__DIR__ . '/../includes/database.php');
 require_once(__DIR__ . '/../includes/csrf.php');
-verifierfonction(['admin', 'gestionnaire']);
+verifierfonction(['admin', 'responsable']);
 
 // Fonction pour nettoyer les backslashes
 function cleanBackslashes($value) {

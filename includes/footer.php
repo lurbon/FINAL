@@ -37,7 +37,7 @@
             <p>&copy; <?php echo date('Y'); ?> Entraide Plus Iroise - Tous droits réservés | 
             <a href="mentions-legales.php">Mentions légales</a> | 
             <a href="politique-confidentialite.php">Politique de confidentialité</a> | 
-            <a href="admin/login.php">Administration</a></p>
+
         </div>
     </footer>
     

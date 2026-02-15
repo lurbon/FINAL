@@ -1,5 +1,0 @@
-# Fichiers sensibles
-config.php
-wp-config.php
-.env
-*.log
