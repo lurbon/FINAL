@@ -199,7 +199,7 @@ include 'includes/header.php';
 }
 </style>
 
-<script>
+<script nonce="<?php echo csp_nonce(); ?>">
 (function() {
     'use strict';
     

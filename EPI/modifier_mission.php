@@ -1110,7 +1110,7 @@ if (isset($_GET['success'])) {
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         async function chargerInfosBenevole(id) {
             if (!id) {
                 // Si on désélectionne le bénévole, vider les champs

@@ -15,13 +15,28 @@
  * - https://content-security-policy.com/
  */
 
+// Générer un nonce CSP unique par requête (protection XSS renforcée)
+if (!isset($GLOBALS['csp_nonce'])) {
+    $GLOBALS['csp_nonce'] = base64_encode(random_bytes(16));
+}
+
+/**
+ * Retourne le nonce CSP pour les balises <script> inline
+ * Usage dans les templates : <script nonce="<?php echo csp_nonce(); ?>">
+ *
+ * @return string Le nonce CSP encodé en base64
+ */
+function csp_nonce(): string {
+    return $GLOBALS['csp_nonce'] ?? '';
+}
+
 // Content Security Policy - Protection contre XSS
-// Autorise uniquement les ressources provenant du même domaine
-// Permet les styles et scripts inline (nécessaires pour l'application actuelle)
+// Utilise un nonce pour autoriser les scripts inline de manière sécurisée
+$nonce = csp_nonce();
 header(
     "Content-Security-Policy: " .
     "default-src 'self'; " .                                      // Par défaut : même origine uniquement
-    "script-src 'self' 'unsafe-inline'; " .                       // Scripts : même origine + inline (à améliorer)
+    "script-src 'self' 'nonce-{$nonce}'; " .                      // Scripts : même origine + nonce (pas de unsafe-inline)
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " . // Styles : même origine + Google Fonts
     "font-src 'self' https://fonts.gstatic.com; " .               // Polices : même origine + Google Fonts
     "img-src 'self' data:; " .                                    // Images : même origine + data URIs
@@ -77,18 +92,12 @@ if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['user'])) {
 }
 
 /**
- * Note importante sur Content-Security-Policy :
+ * Note sur Content-Security-Policy :
  *
- * L'utilisation de 'unsafe-inline' pour script-src et style-src n'est pas idéale
- * mais nécessaire car l'application utilise des scripts et styles inline.
+ * script-src utilise un nonce CSP généré par requête (voir csp_nonce()).
+ * Chaque balise <script> inline DOIT inclure l'attribut nonce :
+ *   <script nonce="<?php echo csp_nonce(); ?>">...</script>
  *
- * Pour améliorer la sécurité, il faudrait :
- * 1. Extraire tous les scripts inline dans des fichiers .js séparés
- * 2. Extraire tous les styles inline dans des fichiers .css séparés
- * 3. Utiliser des nonces ou des hashes pour les scripts/styles restants
- *
- * Exemple avec nonce :
- * - Générer un nonce : $nonce = base64_encode(random_bytes(16));
- * - Header : "script-src 'self' 'nonce-{$nonce}';"
- * - Dans HTML : <script nonce="<?php echo $nonce; ?>">...</script>
+ * style-src conserve 'unsafe-inline' car l'extraction de tous les styles
+ * inline est un chantier important à faible risque XSS.
  */

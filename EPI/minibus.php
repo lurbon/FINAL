@@ -715,7 +715,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         // Variables globales
         let listeChauffeurs = [];
         let listeAides = [];

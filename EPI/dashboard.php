@@ -595,7 +595,7 @@ if (!$utilisateur || !$token) {
     </div>
 
     <!-- Injection des données PHP -->
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         const phpToken = <?php echo json_encode($token); ?>;
         const phpUser = <?php echo json_encode($utilisateur); ?>;
         const phpExpires = <?php echo isset($_SESSION['token_expires']) ? $_SESSION['token_expires'] * 1000 : 'null'; ?>;
@@ -606,7 +606,7 @@ if (!$utilisateur || !$token) {
     </script>
 
     <!-- Script dashboard -->
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         // Récupération utilisateur
         function getUser() {
             const userStr = sessionStorage.getItem('user');

@@ -9,6 +9,7 @@
  */
 
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/security-headers.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/auth/PasswordManager.php';
 require_once __DIR__ . '/../includes/auth/SessionManager.php';
@@ -393,7 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
         </div>
     </div>
     
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         // Validation côté client
         const form = document.querySelector('form');
         if (form) {

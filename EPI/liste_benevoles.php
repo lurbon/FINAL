@@ -653,7 +653,7 @@ try {
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         function showDetails(benevole) {
             const modal = document.getElementById('detailModal');
             const modalNom = document.getElementById('modalNom');

@@ -1,5 +1,6 @@
 <?php
 require_once '../includes/config.php';
+require_once '../includes/security-headers.php';
 require_once '../includes/csrf.php';
 require_once '../includes/sanitize.php';
 
@@ -194,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
     function togglePassword(fieldId) {
         const field = document.getElementById(fieldId);
         const button = field.nextElementSibling;

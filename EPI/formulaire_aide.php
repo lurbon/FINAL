@@ -526,7 +526,7 @@ $dateJour = date('Y-m-d');
         </form>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         const communeInput = document.getElementById('commune');
         const cpInput = document.getElementById('code_postal');
         const secteurInput = document.getElementById('secteur');

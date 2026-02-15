@@ -859,7 +859,7 @@ try {
         </form>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         // Fonction pour cocher/décocher toutes les cases
         function toggleAllCheckboxes(source) {
             const checkboxes = document.querySelectorAll('.row-checkbox');

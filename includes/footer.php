@@ -56,7 +56,7 @@
             <button class="theme-opt" data-theme="aubergine" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border:none;background:none;cursor:pointer;width:100%;border-radius:6px;font-size:13px;color:#111827;font-family:inherit;"><span style="display:flex;gap:3px;"><span style="width:14px;height:14px;border-radius:50%;background:#6b21a8;border:1px solid rgba(0,0,0,0.1);display:block;"></span><span style="width:14px;height:14px;border-radius:50%;background:#0d9488;border:1px solid rgba(0,0,0,0.1);display:block;"></span></span>Aubergine</button>
         </div>
     </div>
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
     (function(){
         var themes = {
             'default':   {pc:'#2563eb',pd:'#1e40af',pl:'#3b82f6',sc:'#10b981',sd:'#059669',sl:'#34d399'},

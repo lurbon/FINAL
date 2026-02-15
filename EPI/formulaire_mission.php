@@ -86,35 +86,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     
     try {
-        // Fonction pour nettoyer les backslashes multiples qui peuvent s'accumuler
-        function cleanBackslashes($value) {
-            if (is_null($value) || $value === '') {
-                return $value;
-            }
-            // Nettoyer les multiples backslashes consécutifs
-            $cleaned = $value;
-            // Remplacer \\\\ par \\, puis \\ par \ jusqu'à ce qu'il n'y ait plus de doublons
-            while (strpos($cleaned, '\\\\') !== false) {
-                $cleaned = str_replace('\\\\', '\\', $cleaned);
-            }
-            // Puis retirer les backslashes d'échappement restants
-            $cleaned = stripslashes($cleaned);
-            return $cleaned;
-        }
-        
-        $sql = "INSERT INTO EPI_mission (date_mission, heure_rdv, 
-                id_benevole, benevole, adresse_benevole, cp_benevole, commune_benevole, secteur_benevole, 
-                id_aide, aide, adresse_aide, cp_aide, commune_aide, secteur_aide, 
-                adresse_destination, cp_destination, commune_destination, 
-                nature_intervention, commentaires, email_createur, date_cre) 
-                VALUES (:date_mission, :heure_rdv, 
-                :id_benevole, :benevole, :adresse_benevole, :cp_benevole, :commune_benevole, :secteur_benevole, 
-                :id_aide, :aide, :adresse_aide, :cp_aide, :commune_aide, :secteur_aide, 
-                :adresse_destination, :cp_destination, :commune_destination, 
+        $sql = "INSERT INTO EPI_mission (date_mission, heure_rdv,
+                id_benevole, benevole, adresse_benevole, cp_benevole, commune_benevole, secteur_benevole,
+                id_aide, aide, adresse_aide, cp_aide, commune_aide, secteur_aide,
+                adresse_destination, cp_destination, commune_destination,
+                nature_intervention, commentaires, email_createur, date_cre)
+                VALUES (:date_mission, :heure_rdv,
+                :id_benevole, :benevole, :adresse_benevole, :cp_benevole, :commune_benevole, :secteur_benevole,
+                :id_aide, :aide, :adresse_aide, :cp_aide, :commune_aide, :secteur_aide,
+                :adresse_destination, :cp_destination, :commune_destination,
                 :nature_intervention, :commentaires, :email_createur, NOW())";
-        
+
         $stmt = $conn->prepare($sql);
-        
+
         // Récupérer l'email de l'utilisateur connecté (essayer plusieurs emplacements possibles)
         $email_createur = null;
         if (isset($_SESSION['user']['email'])) {
@@ -130,29 +114,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $email_createur = 'systeme@entraide-iroise.fr';
             error_log("ATTENTION: Email créateur non trouvé en session, utilisation de l'email par défaut");
         }
-        
-        // Préparer les données en nettoyant les backslashes
+
         $data = [
             ':date_mission' => !empty($_POST['date_mission']) ? (sanitize_date($_POST['date_mission']) ?: null) : null,
             ':heure_rdv' => !empty($_POST['heure_rdv']) ? (sanitize_time($_POST['heure_rdv']) ?: null) : null,
             ':id_benevole' => !empty($_POST['id_benevole']) ? (sanitize_int($_POST['id_benevole']) ?: null) : null,
-            ':benevole' => !empty($_POST['benevole']) ? cleanBackslashes($_POST['benevole']) : null,
-            ':adresse_benevole' => !empty($_POST['adresse_benevole']) ? cleanBackslashes($_POST['adresse_benevole']) : null,
-            ':cp_benevole' => !empty($_POST['cp_benevole']) ? cleanBackslashes($_POST['cp_benevole']) : null,
-            ':commune_benevole' => !empty($_POST['commune_benevole']) ? cleanBackslashes($_POST['commune_benevole']) : null,
-            ':secteur_benevole' => !empty($_POST['secteur_benevole']) ? cleanBackslashes($_POST['secteur_benevole']) : null,
+            ':benevole' => !empty($_POST['benevole']) ? $_POST['benevole'] : null,
+            ':adresse_benevole' => !empty($_POST['adresse_benevole']) ? $_POST['adresse_benevole'] : null,
+            ':cp_benevole' => !empty($_POST['cp_benevole']) ? $_POST['cp_benevole'] : null,
+            ':commune_benevole' => !empty($_POST['commune_benevole']) ? $_POST['commune_benevole'] : null,
+            ':secteur_benevole' => !empty($_POST['secteur_benevole']) ? $_POST['secteur_benevole'] : null,
             ':id_aide' => !empty($_POST['id_aide']) ? (sanitize_int($_POST['id_aide']) ?: null) : null,
-            ':aide' => !empty($_POST['aide']) ? cleanBackslashes($_POST['aide']) : null,
-            ':adresse_aide' => !empty($_POST['adresse_aide']) ? cleanBackslashes($_POST['adresse_aide']) : null,
-            ':cp_aide' => !empty($_POST['cp_aide']) ? cleanBackslashes($_POST['cp_aide']) : null,
-            ':commune_aide' => !empty($_POST['commune_aide']) ? cleanBackslashes($_POST['commune_aide']) : null,
-            ':secteur_aide' => !empty($_POST['secteur_aide']) ? cleanBackslashes($_POST['secteur_aide']) : null,
-            ':adresse_destination' => !empty($_POST['adresse_destination']) ? cleanBackslashes($_POST['adresse_destination']) : null,
-            ':cp_destination' => !empty($_POST['cp_destination']) ? cleanBackslashes($_POST['cp_destination']) : null,
-            ':commune_destination' => !empty($_POST['commune_destination']) ? cleanBackslashes($_POST['commune_destination']) : null,
-            ':nature_intervention' => !empty($_POST['nature_intervention']) ? cleanBackslashes($_POST['nature_intervention']) : null,
-            ':commentaires' => !empty($_POST['commentaires']) ? cleanBackslashes($_POST['commentaires']) : null,
-            ':email_createur' => cleanBackslashes($email_createur)
+            ':aide' => !empty($_POST['aide']) ? $_POST['aide'] : null,
+            ':adresse_aide' => !empty($_POST['adresse_aide']) ? $_POST['adresse_aide'] : null,
+            ':cp_aide' => !empty($_POST['cp_aide']) ? $_POST['cp_aide'] : null,
+            ':commune_aide' => !empty($_POST['commune_aide']) ? $_POST['commune_aide'] : null,
+            ':secteur_aide' => !empty($_POST['secteur_aide']) ? $_POST['secteur_aide'] : null,
+            ':adresse_destination' => !empty($_POST['adresse_destination']) ? $_POST['adresse_destination'] : null,
+            ':cp_destination' => !empty($_POST['cp_destination']) ? $_POST['cp_destination'] : null,
+            ':commune_destination' => !empty($_POST['commune_destination']) ? $_POST['commune_destination'] : null,
+            ':nature_intervention' => !empty($_POST['nature_intervention']) ? $_POST['nature_intervention'] : null,
+            ':commentaires' => !empty($_POST['commentaires']) ? $_POST['commentaires'] : null,
+            ':email_createur' => $email_createur
         ];
         
         // DEBUG: Décommentez ces lignes pour déboguer
@@ -692,7 +675,7 @@ $dateJour = date('Y-m-d');
         </form>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         const benevolesData = <?php echo json_encode($benevoles); ?>;
         const aidesData = <?php echo json_encode($aides); ?>;
         const villesData = <?php echo json_encode($villes); ?>;

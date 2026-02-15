@@ -841,7 +841,7 @@ foreach($missions as $m) {
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         // Fonction pour formater les numéros de téléphone
         function formatTelephone(tel) {
             if (!tel) return '-';

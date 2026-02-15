@@ -812,7 +812,7 @@ $total_minutes = $total_duree_minutes % 60;
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         function formatTelephone(tel) {
             if (!tel) return '-';
             tel = tel.replace(/[\s.-]/g, '');

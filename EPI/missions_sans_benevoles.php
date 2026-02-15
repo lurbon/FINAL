@@ -1634,7 +1634,7 @@ $totalMissions = array_sum(array_map('count', $missionsBySecteur));
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         let currentSecteur = '';
 
         function switchTab(secteur) {

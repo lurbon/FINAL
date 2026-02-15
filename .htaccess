@@ -1,6 +1,10 @@
 # Activer le moteur de réécriture
 RewriteEngine On
 
+# Forcer la redirection HTTP vers HTTPS
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
 # Bloquer l'accès aux fichiers sensibles
 <FilesMatch "\.(htaccess|htpasswd|ini|log|sh|inc|bak|sql)$">
     Order Allow,Deny

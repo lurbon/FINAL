@@ -612,7 +612,7 @@ if (isset($_GET['success'])) {
         <?php endif; ?>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         const communeInput = document.getElementById('commune');
         const cpInput = document.getElementById('code_postal');
         const secteurInput = document.getElementById('secteur');
@@ -665,7 +665,7 @@ if (isset($_GET['success'])) {
         // Données des aidés pour l'autocomplétion
         const aidesData = [
             <?php foreach($aides as $a): ?>
-            {id: <?php echo $a['id_aide']; ?>, nom: "<?php echo addslashes($a['nom']); ?>"},
+            {id: <?php echo (int)$a['id_aide']; ?>, nom: <?php echo json_encode($a['nom']); ?>},
             <?php endforeach; ?>
         ];
 

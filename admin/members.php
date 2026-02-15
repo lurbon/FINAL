@@ -935,7 +935,7 @@ $admin_email = $_SESSION['admin_email'] ?? '';
         </div>
     </div>
     
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         function openChangePasswordModal(userId, userName) {
             document.getElementById('modalUserId').value = userId;
             document.getElementById('modalUserName').textContent = 'Utilisateur : ' + userName;

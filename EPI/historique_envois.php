@@ -656,7 +656,7 @@ $secteurs = $stmtSecteurs->fetchAll(PDO::FETCH_COLUMN);
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         function showDetails(id) {
             const modal = document.getElementById('detailsModal');
             const body = document.getElementById('modal-body');

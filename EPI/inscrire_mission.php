@@ -886,7 +886,7 @@ if ($missionId && $email && $token) {
     </div>
     <?php endif; ?>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         <?php if ($showConfirmation): ?>
         // Afficher la modal au chargement de la page
         window.addEventListener('DOMContentLoaded', function() {

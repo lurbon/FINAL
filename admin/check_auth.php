@@ -62,4 +62,7 @@ if (isset($_SESSION['admin_last_activity']) && (time() - $_SESSION['admin_last_a
 
 // Mettre à jour le timestamp d'activité
 $_SESSION['admin_last_activity'] = time();
+
+// Headers de sécurité HTTP (CSP, HSTS, etc.)
+require_once __DIR__ . '/../includes/security-headers.php';
 ?>

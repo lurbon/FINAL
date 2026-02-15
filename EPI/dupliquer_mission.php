@@ -11,19 +11,6 @@ require_once(__DIR__ . '/../includes/database.php');
 require_once(__DIR__ . '/../includes/csrf.php');
 verifierfonction(['admin', 'responsable']);
 
-// Fonction pour nettoyer les backslashes
-function cleanBackslashes($value) {
-    if (is_null($value) || $value === '') {
-        return $value;
-    }
-    $cleaned = $value;
-    while (strpos($cleaned, '\\\\') !== false) {
-        $cleaned = str_replace('\\\\', '\\', $cleaned);
-    }
-    $cleaned = stripslashes($cleaned);
-    return $cleaned;
-}
-
 // Fonction pour formater une date en français
 if (!function_exists('formatDateFr')) {
     function formatDateFr($date) {
@@ -641,20 +628,20 @@ function formatDateFr($date) {
                         </div>
                         <div class="info-item">
                             <div class="info-label">Bénévole</div>
-                            <div class="info-value"><?php echo htmlspecialchars(stripslashes($mission['benevole'])); ?></div>
+                            <div class="info-value"><?php echo htmlspecialchars($mission['benevole']); ?></div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Aidé</div>
-                            <div class="info-value"><?php echo htmlspecialchars(stripslashes($mission['aide'])); ?></div>
+                            <div class="info-value"><?php echo htmlspecialchars($mission['aide']); ?></div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Nature intervention</div>
-                            <div class="info-value"><?php echo htmlspecialchars(stripslashes($mission['nature_intervention'])); ?></div>
+                            <div class="info-value"><?php echo htmlspecialchars($mission['nature_intervention']); ?></div>
                         </div>
                         <?php if($mission['adresse_destination']): ?>
                         <div class="info-item">
                             <div class="info-label">Destination</div>
-                            <div class="info-value"><?php echo htmlspecialchars(stripslashes($mission['adresse_destination'])); ?></div>
+                            <div class="info-value"><?php echo htmlspecialchars($mission['adresse_destination']); ?></div>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -711,14 +698,14 @@ function formatDateFr($date) {
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         // Données des missions pour l'autocomplétion
         const missionsData = [
             <?php foreach($missions as $m): ?>
             {
-                id: <?php echo $m['id_mission']; ?>, 
-                text: "<?php echo formatDateFr($m['date_mission']) . ' ' . substr($m['heure_rdv'], 0, 5); ?> - <?php echo addslashes(stripslashes($m['aide'])); ?> (<?php echo addslashes(stripslashes($m['benevole'])); ?>)",
-                searchText: "<?php echo strtolower(addslashes(stripslashes($m['aide'] . ' ' . $m['benevole']))); ?>"
+                id: <?php echo (int)$m['id_mission']; ?>,
+                text: <?php echo json_encode(formatDateFr($m['date_mission']) . ' ' . substr($m['heure_rdv'], 0, 5) . ' - ' . $m['aide'] . ' (' . $m['benevole'] . ')'); ?>,
+                searchText: <?php echo json_encode(strtolower($m['aide'] . ' ' . $m['benevole'])); ?>
             },
             <?php endforeach; ?>
         ];

@@ -1030,7 +1030,7 @@ $total_photos = $pdo->query("SELECT COUNT(*) FROM EPI_gallery WHERE event_id IS 
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
     function toggleCollapse(element) {
         element.classList.toggle('collapsed');
         const content = element.nextElementSibling;

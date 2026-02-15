@@ -423,7 +423,7 @@
         </div>
     </header>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         // Menu mobile
         (function() {
             'use strict';

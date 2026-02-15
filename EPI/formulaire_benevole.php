@@ -660,7 +660,7 @@ $dateJour = date('Y-m-d');
         </form>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
         const villesData = <?php echo json_encode($villes); ?>;
 
         const communeInput = document.getElementById('commune');

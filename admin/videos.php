@@ -382,7 +382,7 @@ $videos = $pdo->query("SELECT * FROM EPI_videos ORDER BY created_at DESC")->fetc
         </div>
     </div>
 
-    <script>
+    <script nonce="<?php echo csp_nonce(); ?>">
     // Selecteur de type de video
     document.querySelectorAll('.video-type-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
